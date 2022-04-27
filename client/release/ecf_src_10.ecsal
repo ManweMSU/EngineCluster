@@ -1,0 +1,73 @@
+﻿ECSAL
+"000000001" {
+	AddMetadata = true
+	CompressionBlock = 65536
+	CompressionChain = 19
+	CompressionQuality = 4
+	Name = "ECF.ecsa"
+	Source = "<ListPath>\\ECF.ecsa"
+}
+"000000002" {
+	AddMetadata = true
+	CompressionBlock = 65536
+	CompressionChain = 19
+	CompressionQuality = 4
+	Name = "sources/ClusterClient.cxx"
+	Source = "<ListPath>\\..\\ClusterClient.cxx"
+}
+"000000003" {
+	AddMetadata = true
+	CompressionBlock = 65536
+	CompressionChain = 19
+	CompressionQuality = 4
+	Name = "sources/ClusterClient.h"
+	Source = "<ListPath>\\..\\ClusterClient.h"
+}
+"000000004" {
+	AddMetadata = true
+	CompressionBlock = 65536
+	CompressionChain = 19
+	CompressionQuality = 4
+	Name = "sources/ClusterPackage.cxx"
+	Source = "<ListPath>\\..\\ClusterPackage.cxx"
+}
+"000000005" {
+	AddMetadata = true
+	CompressionBlock = 65536
+	CompressionChain = 19
+	CompressionQuality = 4
+	Name = "sources/ClusterPackage.h"
+	Source = "<ListPath>\\..\\ClusterPackage.h"
+}
+"000000006" {
+	AddMetadata = true
+	CompressionBlock = 65536
+	CompressionChain = 19
+	CompressionQuality = 4
+	Name = "sources/ClusterTaskBase.h"
+	Source = "<ListPath>\\..\\ClusterTaskBase.h"
+}
+"000000007" {
+	AddMetadata = true
+	CompressionBlock = 65536
+	CompressionChain = 19
+	CompressionQuality = 4
+	Name = "sources/ClusterTaskClient.cxx"
+	Source = "<ListPath>\\..\\ClusterTaskClient.cxx"
+}
+"000000008" {
+	AddMetadata = true
+	CompressionBlock = 65536
+	CompressionChain = 19
+	CompressionQuality = 4
+	Name = "sources/ClusterTaskClient.h"
+	Source = "<ListPath>\\..\\ClusterTaskClient.h"
+}
+"000000009" {
+	AddMetadata = true
+	CompressionBlock = 65536
+	CompressionChain = 19
+	CompressionQuality = 4
+	Name = "sources/ClusterTaskInterfaces.h"
+	Source = "<ListPath>\\..\\ClusterTaskInterfaces.h"
+}

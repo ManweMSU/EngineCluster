@@ -1,0 +1,26 @@
+﻿ECSAL
+ExcludeMetadata = true
+"000000001" {
+	AccessTimeClass = 3
+	AlterTimeClass = 3
+	CreationTimeClass = 3
+	ID = 1
+	Source = "<ListPath>\\p080.eiwv"
+	Type = "IMG - изображение"
+}
+"000000002" {
+	AccessTimeClass = 3
+	AlterTimeClass = 3
+	CreationTimeClass = 3
+	ID = 2
+	Source = "<ListPath>\\p120.eiwv"
+	Type = "IMG - изображение"
+}
+"000000003" {
+	AccessTimeClass = 3
+	AlterTimeClass = 3
+	CreationTimeClass = 3
+	ID = 3
+	Source = "<ListPath>\\p160.eiwv"
+	Type = "IMG - изображение"
+}

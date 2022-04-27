@@ -1,0 +1,16 @@
+﻿Subsystem = "silent"
+UseVersionDefines = true
+CompileList {
+	AAAAAA = "ecfhost.cxx"
+	B = "../../client/ClusterClient.cxx"
+}
+VersionInformation {
+	ApplicationIdentifier = "ClusterFrameworkTaskHost"
+	ApplicationName = "Engine Cluster Framework Task Host"
+	CompanyIdentifier = "EngineSoftware"
+	CompanyName = "Engine Software"
+	Copyright = "© Engine Software. 2023"
+	Description = "Engine Cluster Framework task host process."
+	InternalName = "ecfhost"
+	Version = "1.0.0.1"
+}

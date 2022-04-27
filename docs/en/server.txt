@@ -1,0 +1,36 @@
+\hh{The Cluster}\n\t The cluster is built over the regular computer network with TCP/IP protocols.
+We shall call a participant of the cluster as the \b{node}. A single instance of the \b{server} operates on each node.
+The servers interacts with each other using the star topology.
+A several number of \b{clients} operates on each node. Each client interacts directly with its server only.
+The cluster net is decentralized. The topology information is maintained and stored by the servers.
+The topology information is being synchronized on the basis of the PC time.
+The cluster net allows its participants to exchange with \b{packages} with each other and implement several \b{services}.
+\n\h{Services}\n\t The service (in general) is a set of functions and package verbs implemented by the net participant.
+We consider service as a special property assigned to each participant. This property determines the functions implemented
+and the usage of the user-defined packages. The participants may be enumerated by the service implemented.
+The developer of the service defines a service identifier in the reverse-dns form (e.g. 'engine.cluster.node').
+The 'engine.cluster' namespace is reserved and is used by the system.
+\n\h{Packages}\n\t Package is the basic data block transmitted between the net participants. The package includes the data block,
+server and receiver addresses and the package verb. The cluster net address has the form of LLSSSSSSNNNNIIII (64-bit number).
+The addresses are allocated by the servers. LL is address level, it's equal to 01 for server and 02 for client.
+\n SSSSSS is service index. The service indicies are allocated by the server on the basis of service identifier.
+\b{It is warranted} that: 1) the clients implementing the same service within the same node the service indicies shall be the same.
+2) the clients implementing different services within the same node the service indicies shall be different.
+The service indicies may differ on each launch of the PC/server and on different nodes. The server always have the service index equal to 0.
+\n NNNN is the node index. The node index is always non-zero. It's allocated to the node when the node joins the net and is constant further.
+The net participants within the same node always have the same node index.
+\n IIII is an instance index. It's allocated by the server to each client to enshure that its address is unique.
+The server has its instance index always equal to zero.
+\n The package verb is a 32-bit number. It specifies the usage of the package in the context of the sender and the receiver.
+The verbs 00000000-7FFFFFFF are reserved and are used by the system.
+The verbs 80000000-FFFFFFFF are used by the clients. Their usage is defined by the client's service.
+\n\h{The Node Service}\n\t The node service is implemented by the servers. Its functions includes:\n
+- the definition and the synchronization of the net topology,\n
+- package routing between the different nodes,\n
+- enumerating some hardware and software properties of the nodes,\n
+- enumerating the topology information and the information on the participants connecte,\n
+- the remote control over the power supply of the node,\n
+- the power supply and computation status notifications.
+\n\t The node addition, removal and shutdown is performed using the GUI of the server.
+The information retrieval is performed using the server GUI, command-line tool 'ecfstat'
+and programmatically using the ClusterClient API.

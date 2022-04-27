@@ -1,0 +1,15 @@
+﻿UseVersionDefines = true
+CompileList {
+	A = "ecfconwr.cxx"
+	B = "../../client/ClusterClient.cxx"
+}
+VersionInformation {
+	ApplicationIdentifier = "ClusterFrameworkConsoleWriter"
+	ApplicationName = "Engine Cluster Framework Console Writer"
+	CompanyIdentifier = "EngineSoftware"
+	CompanyName = "Engine Software"
+	Copyright = "© Engine Software. 2023"
+	Description = "Engine Cluster Framework console source."
+	InternalName = "ecfconwr"
+	Version = "1.0.0.1"
+}

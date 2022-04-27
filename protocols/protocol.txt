@@ -1,0 +1,108 @@
+HANDSHAKE-AUTHORIZATION PACKET
+'ECLFAUTH' OBJECT_TYPE CUSTOM_SERVICE_ID CUSTOM_SERVICE_NAME NODE_GUID TARGET_NODE_GUID
+\--------/ \---------/ \---------------/ \-----------------/ \------------------------/
+  8 bytes    4 bytes        YY bytes           XXX bytes      16x2 bytes if type is node
+
+OBJECT_TYPE:
+MASKS:
+  FF00 0000 - network object type
+  00FF FFFF - network object endpoint subtype
+TYPE VALUES:
+  0100 0000 - network object type node server
+  0200 0000 - network object type endpoint
+  0000 0001 - network endpoint subtype job client
+  0000 0002 - network endpoint subtype job host/worker
+  0000 0003 - network endpoint subtype text logger
+  008X XXYY - network endpoint subtype custom service
+
+RESPONCE
+'ECLFRESP' OBJECT_ID LOCAL_SERVER_ID
+\--------/ \-------/ \-------------/
+  8 bytes   8 bytes      8 bytes
+
+OBJECT_ID:
+MASKS:
+  FF00 0000 0000 0000 - network object type
+  00FF FFFF 0000 0000 - network service ID
+  0000 0000 FFFF 0000 - network node ID
+  0000 0000 0000 FFFF - network instance ID
+NETWORK OBJECT TYPE:
+  00 - handshake failed
+  01 - node server
+  02 - endpoint
+NETWORK OBJECT SERVICE ID
+  000000 - node server
+  000001 - job client
+  000002 - job host/worker
+  000003 - text logger
+  XXXXXX - custom service, XXXXXX > 3
+NETWORK NODE ID
+  0000 - server node is not incorporated
+  XXXX - cluster network node ID, XXXX > 0
+NETWORK INSTANCE ID
+  0000 - node-unique service (node server or a job client/host)
+  XXXX - cluster network object instance ID, unique to a node, XXXX > 0 
+
+REGULAR PACKET
+PACKET_VERB PAYLOAD_SIZE DESTINATION_ADDRESS SOURCE_ADDRESS PAYLOAD
+\---------/ \----------/ \-----------------/ \------------/
+  4 bytes      4 bytes         8 bytes           8 bytes
+
+VERBS
+COMMON
+  0000 0001 - ping
+  0001 0001 - ping responce
+SERVER TO SERVER ONLY
+  0000 0101 - server net node join
+  0001 0101 - server net node join responce
+  0000 0102 - server net node connect
+  0000 0103 - server net update node list
+TO SERVER (STATUS API)
+  0000 0201 - enumerate nodes
+  0001 0201 - node enumeration responce
+  0000 0202 - enumerate service instances
+  0001 0202 - service enumeration responce
+  0000 0203 - node status notify
+  0000 0204 - node info request
+  0001 0204 - node info responce
+  0000 0205 - node control request
+  0000 0206 - node status request
+TO SERVER AND TEXT LOGGER
+  0000 0301 - log text notification (primary)
+  0000 0302 - log text notification (broadcast)
+  0000 0303 - log text notification (client)
+COMPUTATION MESSAGES
+TO SERVER
+  0000 0411 - node launch host
+  0001 0411 - launch host responce
+  0000 0412 - kill current host
+  0000 0413 - node remote compile
+  0001 0413 - remote compile responce
+  0000 0414 - kill current compiler
+  0000 0415 - remote compiler notification
+  0000 0416 - allow/disallow node to launch tasks
+TO HOST
+  0000 0421 - initialize with communication table
+  0001 0421 - initialize with communication table responce
+  0000 0422 - schedule task
+  0001 0422 - schedule task responce
+  0000 0423 - report queue status
+  0001 0423 - queue status responce
+  0000 0424 - terminate
+TO JOB CLIENT
+  0000 0431 - work status responce
+
+USER SPACE VERBS
+  8XXX XXXX
+
+NET JOIN SCHEME
+  new node:  connects
+             0000 0101 to one node with its uuid and name
+  one node:  0001 0101 to new node with net guid, name and node table
+             0000 0103 to active nodes with node table
+  new node:  disconnects
+             goes to connect scheme
+NET CONNECT/RECONNECT SCHEME
+  new node:  connects
+             0000 0102 to all nodes with its node table
+  all nodes: 0001 0102 to new node with its node table

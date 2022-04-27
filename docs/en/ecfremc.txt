@@ -1,0 +1,11 @@
+\hh{The Use of Remote Compilation}\n\h{ecfremc}\n\t Performs a remote build of an Engine Runtime project on the other node. Syntax:
+\n\code{ecfremc <PROJECT> <NODE> [-a <ARCH>] [-o <OS>] [-r | -d] [-i <IP>] [-p <PORT>]}
+\n PROJECT - a project file of the project to build.
+\n NODE - a node to use during the remote compilation.
+The node may be addressed by either name or full server address (16 hexadecimal digits) or node index (4 hexadecimal digits).
+\n i - overrides the IP address of the node to connect. The default is 127.0.0.1.
+\n p - overrides the port of the node to connect. The default is 10666.
+\n a - specifies the processor architecture to compile for.
+\n o - specifies the OS to compile for (if the remote node supports the compilation for different systems).
+\n r - tells to use the release configuration.
+\n d - tells to use the debug configuration.

@@ -1,0 +1,10 @@
+\hh{The Manual Launch of the Spreaded Computations}\n\h{ecfexec}\n\t Performs a manual launch of the spreaded computations. Syntax:
+\n\code{ecfexec <PACKAGE> [-a <NAME> <VALUE>] [-f <INPUT>] [-o <OUTPUT>] [-i <IP>] [-p <PORT>]}
+\n PACKAGE - a package file with the computation kernel.
+\n i - overrides the IP address of the node to connect. The default is 127.0.0.1.
+\n p - overrides the port of the node to connect. The default is 10666.
+\n f - uses a binary file specified as the input to the computation.
+\n a - uses a reflected structure as the input to the computation.
+This structure will have a field with name and value specified. The value will have the type Engine::ImmutableString.
+Any number of such fields may be specified.
+\n o - specifies a file used to store the output data of the computation.

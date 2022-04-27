@@ -1,0 +1,47 @@
+\hh{Server Management}\n\h{The Initial Setup}
+\n\t On the first launch the server intiates the initial setup.
+The user will be asked for the node name and UUID. The name has mainly decorative purpose and is presented to the user in several application.
+The name can be used to address the node from the command-line tool 'ecfremc'.
+UUID is a unique 128-bit node identifier. All the nodes must have different UUIDs.
+Each node may participate in several clusters. It will have different addresses in each cluster but the constant UUID.
+The system suggests the user with a random UUID. User is recommended to use it.
+\n\h{Cluster Setup}
+\n\t The cluster control panel is opened by the click in the cluster's icon in the system status bar.
+The main control buttons are: \img{IconHelp} - invokes the documentation and the 'about' dialog,
+\img{IconShutdown} - turns the server off. The close button in the panel's title hides the panel and moves the server to the background mode.
+\n\t The 'Nets' tab provides user with the tools to configure the nets the server is participating.
+The server can simultaneously participate in any number of nets, but only one may be active in the same time.
+The server's services don't operate while the server is not active within any net.
+The net deactivation leads to the disruption of all the connections with the servers and the clients and turns off the services.
+The net has the name and UUID properties. The net management includes the next commands:
+\n\img{IconCreateNet} - net creation. The user will specify the net name and UUID.
+He also will be asked with the port number the server will operate on.
+The UUID field is automatically filled by a random value, the port field by the default one (10666).
+We suggests to use this values. A new, non-active net of only one (current) node will be created.
+\n\img{IconJoinNet} - join net. In order to join an existing net the user must specify the IP address and the port
+of any active node of this net. He also must specify the port his node will operate on.
+The join will automatically synchronized with the other nodes of the net.
+In order to join the net the net must be active on the target node and the join operation must be allowed by the user on that node.
+\n\img{IconForgetNet} - exit net. Excludes the current node from the net selected.
+The exclusion fact is synchronized with the other nodes if there are at least two active nodes on this net including the current one.
+Otherwise the other nodes shall not be notified about the exclusion.
+The net is considered to be destroyed when the last node exits.
+\n\img{IconAutoconnectNet} - autoconnect. Makes the net selected to be autoconnected on the server launch.
+If the net already has this status, the status will be removed. Only one net may have this status in the same time.
+This property is private to the server and does not affects the other nodes. Its alternation doesn't lead to any changes in
+the net state of the server.
+\n\img{IconConnectNet} - connect. Makes the net selected the active one and starts the node services.
+\n\img{IconDisconnectNet} - disconnect. Deactivates the net selected, disrupt all the connections and shuts down all the services.
+\n\t The configuration of the net selected is performed via the 'Nodes' tab. The nodes of the net and their statuses are shown in the list.
+This information includes the node's name, connection, power supply and spreaded computation statuses.
+The connect and disconnect buttons are duplicated on this tab. It also provides the next commands:
+\n\img{IconAllowJoinNet} - allows or disallows new nodes to join the current net via this node.
+This property is private to this node, it equals to 'not allowed' by default and is being reset to this state after each successfull join.
+\n\img{IconLeaveNet} - excludes the node selected from the net. The node will be notified about the exclusion if it's active.
+\n\img{IconSelectNodes} - allows user to select the nodes that are allowed to be used in the spreaded computations.
+\n\t Also the context menu (right-click) of each node has the next commands:
+\n"Watch node services" - prints the list of all the cluster participants (both clients and the server) on the node selected:
+their service names, service identifiers and addresses.
+\n"Watch node information" - prints the information on the hardware and the software of the node, its name, address of the server and UUID.
+\n"Interrupt work" - enforces the interruption of the spreaded computations on this node. Must be used in case of computation bugs.
+\n"Server control" - allows user to shutdown the server, shutdown or restart the PC remotely.

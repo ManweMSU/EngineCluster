@@ -1,0 +1,101 @@
+\hh{ClusterTaskInterface}\n\t All the objects introduced belong to the Engine::Cluster namespace.
+This module define the interfaces for the spreaded computation to interact with.
+Included into the Engine Runtime module: ECFT.
+\n\h{Constants}
+\n\code{TaskFlagAllowMigration}
+\n A task flag. This task allows the computational environment to move itself from one node to another.
+\n\code{TaskFlagFirstPriority}
+\n A task flag. This is a first-priority task. It will always be added to the beginning of the task queue.
+\n\code{TaskFlagProgressAccount}
+\n A task flag. This task must be accounted in the routine of automatic node progress evaluation.
+\n\code{TaskFlagMask}
+\n A mask of all valid task flags.
+\n\h{Interfaces}
+\n\code{class IHostEnvironment}
+\n An interface to interact with the computational environment. This interface is implemented by the computational environment.
+The interface has the next methods:
+\n\code{virtual int GetNodesCount(void) noexcept }
+\n Returns a number of nodes involved into the computation this task participates in.
+\n\code{virtual void GetNodesAddresses(ObjectAddress * addresses) noexcept}
+\n Returns the addresses of task host processes involved into the computation this task participates in.
+\n\code{virtual ObjectAddress GetThisNodeAddress(void) noexcept}
+\n Returns the address of the task host process this task was invoked on.
+\n\code{virtual ObjectAddress GetPrimaryNodeAddress(void) noexcept}
+\n Returns the address of the primary task host process where the Main task was invoked by the system.
+\n\code{virtual void PerformTask(const Engine::ImmutableString & class_name, const Engine::DataBlock * data, Engine::uint32 flags = TaskFlagAllowMigration | TaskFlagProgressAccount) noexcept}
+\n\code{virtual void PerformTask(const Engine::ImmutableString & class_name, const Engine::DataBlock * data, ObjectAddress on_node, Engine::uint32 flags = TaskFlagProgressAccount) noexcept}
+\n Schedules a task with class 'class_name' and input data 'data' and flags 'flags' to be invoked on node 'on_node'.
+In case of overload without 'on_node' argument the node is selected by the environment on its own.
+\n\code{virtual void PerformTask(const Engine::ImmutableString & class_name, Engine::Reflection::Reflected & data, Engine::uint32 flags = TaskFlagAllowMigration | TaskFlagProgressAccount) noexcept}
+\n\code{virtual void PerformTask(const Engine::ImmutableString & class_name, Engine::Reflection::Reflected & data, ObjectAddress on_node, Engine::uint32 flags = TaskFlagProgressAccount) noexcept}
+\n Schedules a task with class 'class_name' and input data 'data' in form of reflected structure and flags 'flags' to be invoked on node 'on_node'.
+In case of overload without 'on_node' argument the node is selected by the environment on its own.
+\n\code{virtual void PerformTask(ITask & task, Engine::uint32 flags = TaskFlagAllowMigration | TaskFlagProgressAccount) noexcept}
+\n\code{virtual void PerformTask(ITask & task, ObjectAddress on_node, Engine::uint32 flags = TaskFlagProgressAccount) noexcept}
+\n Schedules a task 'task' with flags 'flags' to be invoked on node 'on_node'.
+In case of overload without 'on_node' argument the node is selected by the environment on its own.
+This routine makes a copy of task even the target not is the current node. The caller may further use the task on its own.
+\n\code{virtual void ExplicitlyDeclareProgress(Engine::uint32 complete, Engine::uint32 total) noexcept}
+\n Overrides the computation progress of this node. See semantics of TaskHostDesc. This values have only decorative purpose.
+\n\code{virtual void ReportMessage(const Engine::ImmutableString & text) noexcept}
+\n Sends a message into the spreaded console.
+\n\code{virtual void DeclareOutput(const Engine::DataBlock * data) noexcept}
+\n Makes a data block supplied to be a computation result. This method may be invoken only once during the computation.
+\n\code{virtual void DeclareOutput(Engine::Reflection::Reflected & data) noexcept}
+\n Makes a reflected structure supplied to be a computation result. This method may be invoken only once during the computation.
+\n\code{virtual void Terminate(void) noexcept}
+\n Stops the computation and releases any resources it used. This call leads to time-out failure of the task client if the output result was not declared.
+\n\code{virtual void DeclareOutputAndTerminate(const Engine::DataBlock * data) noexcept}
+\n\code{virtual void DeclareOutputAndTerminate(Engine::Reflection::Reflected & data) noexcept}
+\n Sets the computation result and terminates (see DeclareOutput and Terminate).
+\n
+\n\code{class ITask}
+\n This interface must be implemented by a task in order to invoke it in the cluster computation.
+The computation kernel must implement this interface.
+The interface has the next methods:
+\n\code{virtual const Engine::widechar * GetClassName(void) const noexcept}
+\n Returns a pointer to a string with the task's class name.
+\n\code{virtual void Deserialize(const Engine::DataBlock * data) noexcept}
+\n Restores the task's state based on the binary data.
+\n\code{virtual Engine::DataBlock * Serialize(void) noexcept}
+\n Converts the task's state into the binary data. Returns the data block produces.
+This data block will belong to the caller.
+\n\code{virtual void DoTask(IHostEnvironment * environment) noexcept}
+\n Performs the computations dedicated to this task object.
+The 'environment' is zero for the Init task. Otherwise it grants an access to the interface of the computation environment.
+\n
+\n\code{class ITaskFactory}
+\n Creates task objects base on their classes and input data. The computation kernel must implement this interface.
+The interface has the next method:
+\n\code{virtual ITask * DeserializeTask(const Engine::ImmutableString & class_name, const Engine::DataBlock * data) const noexcept}
+\n Creates (restores) a task base on its class name and binary data. Returns this task object. The caller takes the ownership of the object being created.
+Returns zero if it has failed to create a task.
+\n
+\n Also the computation kernel must implement and export the next function
+\n\code{ENGINE_EXPORT_API ITaskFactory * CreateTaskFactory(void)}
+\n Creates a new ITaskFactory object and returns a pointer to it. The caller takes ownership over this object.
+\n\h{Макросы}
+\n The module provides the next macros for a more efficient creation of task classes.
+\n\code{ENGINE_CLUSTER_BINARY_TASK(name)}
+\n Begins a definition of a task class. The class will have a name specified.
+Inside the definition any fields and methods are allowed.
+The user must implement only Serialize, Deserialize and DoTask methods.
+Such a definition must end with the next macro
+\n\code{ENGINE_CLUSTER_END_BINARY_TASK}
+\n
+\n\code{ENGINE_CLUSTER_REFLECTED_TASK(name)}
+\n Begins a definition of a task class. The class will have a name specified.
+Inside the definition any fields, methods and reflected property definitions are allowed.
+The user must implement only DoTask method.
+Such a definition must end with the next macro
+\n\code{ENGINE_CLUSTER_END_REFLECTED_TASK}
+\n
+\n\code{ENGINE_CLUSTER_TASK_FACTORY}
+\n Begins a definition of an implementation of the ITaskFactory interface.
+This macro serie also implements the CreateTaskFactory, LibraryLoaded and LibraryUnloaded functions.
+Such a definition must end with the next macro
+\n\code{ENGINE_CLUSTER_END_TASK_FACTORY}
+\n Inside the serie only this macro is allowed:
+\n\code{ENGINE_CLUSTER_REGISTER_TASK(name)}
+\n Makes a task class with the name specified visible for the computation environment.
+Only visible tasks can be used in spreaded computations.

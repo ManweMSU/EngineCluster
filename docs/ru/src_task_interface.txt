@@ -1,0 +1,103 @@
+\hh{ClusterTaskInterface}\n\tВсе вводимые объекты определены в пространстве имён Engine::Cluster.
+Данный модуль определяет интерфейсы, с которыми взаимодействует вычислительный процесс.
+Включён в модуль Engine Runtime: ECFT.
+\n\h{Константы}
+\n\code{TaskFlagAllowMigration}
+\nФлаг задачи. Данная задача допускает перенос с одного узла на другой по усмотрению вычислительной системы.
+\n\code{TaskFlagFirstPriority}
+\nФлаг задачи. Данная задача является первоприоритетной и будет всегда добавляться в начало очереди задач узла.
+\n\code{TaskFlagProgressAccount}
+\nФлаг задачи. Данная задача должна учитываться при автоматическом формировании прогресса вычислений.
+\n\code{TaskFlagMask}
+\nМаска всех доступных флагов задач.
+\n\h{Интерфейсы}
+\n\code{class IHostEnvironment}
+\nИнтерфейс для взаимодействия вычислительного ядра со средой выполнения. Этот интерфейс реализует среда выполнения.
+Интерфейс реализует следующие методы:
+\n\code{virtual int GetNodesCount(void) noexcept }
+\nВозвращает число узлов, задействованных в данном вычислении.
+\n\code{virtual void GetNodesAddresses(ObjectAddress * addresses) noexcept}
+\nВозвращает адреса узлов (изолированных процессов выполнения задач), задействованных в данном вычислении.
+\n\code{virtual ObjectAddress GetThisNodeAddress(void) noexcept}
+\nВозвращает адрес узла, на котором выполняется задача, которая вызвала этот метод.
+\n\code{virtual ObjectAddress GetPrimaryNodeAddress(void) noexcept}
+\nВозвращает адрес первичного узла вычислений (тот, на котором была выполнена задача Main).
+\n\code{virtual void PerformTask(const Engine::ImmutableString & class_name, const Engine::DataBlock * data, Engine::uint32 flags = TaskFlagAllowMigration | TaskFlagProgressAccount) noexcept}
+\n\code{virtual void PerformTask(const Engine::ImmutableString & class_name, const Engine::DataBlock * data, ObjectAddress on_node, Engine::uint32 flags = TaskFlagProgressAccount) noexcept}
+\nИнициирует выполнение задачи class_name со входными данными data и флагами исполнения flags.
+Если указан адрес on_node, то задача будет изначально распределена на этот узел.
+Иначе среда выполнения определяет узел первичного распределения по своему усмотрению.
+\n\code{virtual void PerformTask(const Engine::ImmutableString & class_name, Engine::Reflection::Reflected & data, Engine::uint32 flags = TaskFlagAllowMigration | TaskFlagProgressAccount) noexcept}
+\n\code{virtual void PerformTask(const Engine::ImmutableString & class_name, Engine::Reflection::Reflected & data, ObjectAddress on_node, Engine::uint32 flags = TaskFlagProgressAccount) noexcept}
+\nИнициирует выполнение задачи class_name со входными данными data в виде структуры с рефлексией и флагами исполнения flags.
+Если указан адрес on_node, то задача будет изначально распределена на этот узел.
+Иначе среда выполнения определяет узел первичного распределения по своему усмотрению.
+\n\code{virtual void PerformTask(ITask & task, Engine::uint32 flags = TaskFlagAllowMigration | TaskFlagProgressAccount) noexcept}
+\n\code{virtual void PerformTask(ITask & task, ObjectAddress on_node, Engine::uint32 flags = TaskFlagProgressAccount) noexcept}
+\nИнициирует выполнение задачи task с флагами исполнения flags.
+Если указан адрес on_node, то задача будет изначально распределена на этот узел.
+Иначе среда выполнения определяет узел первичного распределения по своему усмотрению.
+Вызов создаёт внутреннюю копию задачи, task может далее использоваться вызывающей стороной по её усмотрению.
+\n\code{virtual void ExplicitlyDeclareProgress(Engine::uint32 complete, Engine::uint32 total) noexcept}
+\nЯвно определяет прогресс распределённых вычислений на текущем узле. Семантику параметров см. в описании TaskHostDesc.
+\n\code{virtual void ReportMessage(const Engine::ImmutableString & text) noexcept}
+\nНаправляет сообщение text в распределённую консоль.
+\n\code{virtual void DeclareOutput(const Engine::DataBlock * data) noexcept}
+\nОбъявляет блок данных результатом вычислений. Этот метод может быть вызван только один раз за вычисление.
+\n\code{virtual void DeclareOutput(Engine::Reflection::Reflected & data) noexcept}
+\nОбъявляет структуру с рефлексией результатом вычислений. Этот метод может быть вызван только один раз за вычисление.
+\n\code{virtual void Terminate(void) noexcept}
+\nОстанавливает все вычисления, освобождает выделенные ресурсы.
+\n\code{virtual void DeclareOutputAndTerminate(const Engine::DataBlock * data) noexcept}
+\n\code{virtual void DeclareOutputAndTerminate(Engine::Reflection::Reflected & data) noexcept}
+\nОбъявляет результат вычислений и завершает вычисления (см. DeclareOutput и Terminate).
+\n
+\n\code{class ITask}
+\nИнтерфейс, который должна реализовывать задача, выполняемая в кластерной системе. Этот интерфейс должен быть реализован ядром вычислений.
+Интерфейс реализует следующие методы:
+\n\code{virtual const Engine::widechar * GetClassName(void) const noexcept}
+\nВозвращает указатель на строку с именем класса данной задачи.
+\n\code{virtual void Deserialize(const Engine::DataBlock * data) noexcept}
+\nВосстанавливает данные, необходимые для выполнения задачи, на основе блока данных.
+\n\code{virtual Engine::DataBlock * Serialize(void) noexcept}
+\nЗаписывает данные, необходимые для выполнения задачи, в блок данных.
+Возвращает блок данных и передаёт его в собственность вызывающей стороны.
+\n\code{virtual void DoTask(IHostEnvironment * environment) noexcept}
+\nВыполняет вычислительные задачи, связанные с данным объектом задачи.
+environment равно 0 для задачи Init, предоставляет доступ к интерфейсу вычислительной среды в остальных случаях.
+\n
+\n\code{class ITaskFactory}
+\nИнтерфейс, который должно реализовывать вычислительное ядро. Создаёт объекты задач на основе их класса и входных данных.
+Интерфейс реализует следующий метод:
+\n\code{virtual ITask * DeserializeTask(const Engine::ImmutableString & class_name, const Engine::DataBlock * data) const noexcept}
+\nВосстанавливает задачу, используя её имя класса и блок данных. Возвращает задачу и передаёт её в собственность вызывающей стороне.
+Возвращает 0, если восстановление задачи не удалось.
+\n
+\nТакже ядро вычислений должно реализовать и экспортировать функцию
+\n\code{ENGINE_EXPORT_API ITaskFactory * CreateTaskFactory(void)}
+\nСоздаёт и возвращает объект ITaskFactory, передавая его в собственность вызывающей стороне.
+\n\h{Макросы}
+\nМодуль предоставляет следующие макросы для более эффективного создания классов задач и класса ITaskFactory.
+\n\code{ENGINE_CLUSTER_BINARY_TASK(name)}
+\nОткрывает объявление класса задачи, задача имеет имя класса name.
+Внутри объявления класса задачи допускаются любые поля и методы.
+В обазятельном порядке следует реализовать методы Serialize, Deserialize и DoTask.
+Объявления такой задачи заканчиваются макросом
+\n\code{ENGINE_CLUSTER_END_BINARY_TASK}
+\n
+\n\code{ENGINE_CLUSTER_REFLECTED_TASK(name)}
+\nОткрывает объявление класса задачи, задача имеет имя класса name.
+Внутри объявления класса задачи допускаются любые поля и методы, а также макросы, объявляющие поля, видимые средствами рефлексии.
+В обазятельном порядке следует реализовать метод DoTask.
+Объявления такой задачи заканчиваются макросом
+\n\code{ENGINE_CLUSTER_END_REFLECTED_TASK}
+\n
+\n\code{ENGINE_CLUSTER_TASK_FACTORY}
+\nОткрывает объявление класса, реализующего ITaskFactory.
+Эта серия макросов автоматически реализует и экспортирует функции CreateTaskFactory, LibraryLoaded и LibraryUnloaded.
+Объявление класса завершается вызовом макроса
+\n\code{ENGINE_CLUSTER_END_TASK_FACTORY}
+\nВнутри серии макросов могут использоваться макросы
+\n\code{ENGINE_CLUSTER_REGISTER_TASK(name)}
+\nДелает задачу с именем класса name видимой для среды выполнения.
+Только видимые задачи могут использоваться в рамках распределённых вычислений.

@@ -1,0 +1,7 @@
+\hh{The Cluster State Retrieval}\n\h{ecfstat}\n\t Prints the state of the cluster net. Syntax:
+\n\code{ecfstat [-i <IP>] [-p <PORT>] [-o] [-e] [-s]}
+\n i - overrides the IP address of the node to connect. The default is 127.0.0.1.
+\n p - overrides the port of the node to connect. The default is 10666.
+\n o - prints the information on the offline nodes too.
+\n e - prints the information on each node's clients.
+\n s - prints the information on each node's power supply state and spreaded computation progress.

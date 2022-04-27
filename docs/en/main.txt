@@ -1,0 +1,21 @@
+\hh{Engine Cluster Framework}\n\t Engine Cluster Framework is a complex solution for
+a construction of a computational cluster of PCs over the LAN.
+The solution includes the next components:\n
+- Cluster server - an application that provides an implementation of the net node server, also provides UI and the manuals.\n
+- Cluster tools - a set of command-line tools to manage some cluster services (installed separately).\n
+- Source code packages - modules for Engine Runtime to develop a new cluster software (installed separately).\n
+- Fair Blur - a demonstrational application with gaussian blur function implemented with spreaded computation (installed separately).
+\n\n\h{Cluster Server}\n\t\link{server}{A description for cluster protocol, services and node service}
+\n\t\link{server_panel}{Node server configuration and management}
+\n\t\link{console}{Spreaded console service}
+\n\t\link{compilation}{Remote compilation service}
+\n\t\link{computation}{Spreaded computation service}
+\n\h{Command-Line Tools}\n\t\link{ecfstat}{Acquiring the net information (ecfstat)}
+\n\t\link{ecfcon}{Spreaded console (ecfcon, ecfconwr)}
+\n\t\link{ecfxpack}{Package management (ecfxpack, ecfxview)}
+\n\t\link{ecfremc}{Remote compilation (ecfremc)}
+\n\t\link{ecfexec}{Launching spreaded computations manually (ecfexec)}
+\n\h{API Documentation}\n\t\link{src_client}{Cluster net client - ClusterClient.h}
+\n\t\link{src_package}{Package management - ClusterPackage.h}
+\n\t\link{src_task_client}{Spreaded computations - client - ClusterTaskClient.h, ClusterTaskBase.h}
+\n\t\link{src_task_interface}{Spreaded computations - computation kernel - ClusterTaskInterface.h}

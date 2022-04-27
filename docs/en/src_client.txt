@@ -1,0 +1,142 @@
+\hh{ClusterClient}\n\t All the objects introduced belong to the Engine::Cluster namespace.
+This module implements the cluster client. Included into the Engine Runtime modules: ECFC and ECFTC.
+\n\h{Constants}
+\n\code{constexpr uint16 ClusterServerDefaultPort = 10666}
+\n The default cluster port.
+\n\code{constexpr widechar * IdentifierServiceNode = L"engine.cluster.node"}
+\n The node service identifier.
+\n\code{constexpr widechar * IdentifierServiceWorkClient = L"engine.cluster.employer"}
+\n The spreaded computation client service identifier.
+\n\code{constexpr widechar * IdentifierServiceWorkHost = L"engine.cluster.worker"}
+\n The spreaded computation task host service identifier.
+\n\code{constexpr widechar * IdentifierServiceTextLogger = L"engine.cluster.logger"}
+\n The spreaded console client service identifier.
+\n\h{Data Types}
+\n\code{enum class ServiceClass}
+\n An alternative for service identifier for predefined services. The values possible:
+\n\code{ServiceClass::Unknown} - unknown service.
+\n\code{ServiceClass::Node} - the node service.
+\n\code{ServiceClass::WorkClient} - the spreaded computation client service.
+\n\code{ServiceClass::WorkHost} - the spreaded computation task host service.
+\n\code{ServiceClass::Logger} - the spreaded console client service.
+\n\code{typedef uint64 ObjectAddress}
+\n A type to store the address of the cluster participant.
+\n
+\n\code{struct EndpointDesc}
+\n A structure that describes a participant of the cluster. Has the next fields:
+\n\code{ObjectAddress Address} - an address of the participant.
+\n\code{Engine::ImmutableString ServiceID} - a service identifier of the participant.
+\n\code{Engine::ImmutableString ServiceName} - a service name of the participant.
+\n
+\n\code{struct NodeDesc}
+\n A structure that describes a node. Has the next fields:
+\n\code{ObjectAddress Address} - an address of the node server.
+\n\code{Engine::ImmutableString NodeName} - the node's name.
+\n\code{bool Online} - specifies wheather the node is active now.
+\n
+\n\code{struct NodeStatus}
+\n A structure that describes a node server status. Has the next fields:
+\n\code{Engine::Power::BatteryStatus Battery} - the power supply status of the node.
+\n\code{Engine::uint BatteryLevel} - a number from 0 to 100, a charge level of the accumulator, if such is present.
+\n\code{Engine::uint ProgressComplete} - a number of complete tasks in the context of spreaded computation.
+\n\code{Engine::uint ProgressTotal} - a total amount of tasks in the context of spreaded computation.
+A value of zero means the node does not perform any computations.
+A value of 0xFFFFFFFF means the progress level is indetermined.
+\n\h{Functions}
+\n\code{Engine::Network::Address MakeNetworkAddress(const Engine::ImmutableString & from)}
+\n Transforms a text representation of an IP address into binary.
+\n Throws the next exceptions:
+\n Engine::InvalidArgumentException if the string has a wrong syntex.
+\n Engine::OutOfMemoryException if there is no memory for the conversion.
+\n\h{Interfaces}
+\n\code{class IMessageCallback}
+\n The user implements this interface to handle the incoming packages.
+Important: the methods of this interface must not call the APIs of the Client class, a deadlock danger.
+It has the next methods:
+\n\code{virtual bool RespondsToMessage(Engine::uint32 verb)}
+\n Must return true if and only if the packages with the verb supplied are processed by this interface implementation.
+\n\code{virtual void HandleMessage(ObjectAddress from, Engine::uint32 verb, const Engine::DataBlock * data)}
+\n Is invoked to handle an incoming package if the package has a verb that is declared as supported by RespondsToMessage.
+\n\code{from} - a sender address.
+\n\code{verb} - the package verb.
+\n\code{data} - the package payload. May be zero for an empty package.
+\n\code{virtual void CallbackExpired(void)}
+\n Is invoked when the callback time was expired (see RegisterCallback and RegisterOneTimeCallback).
+\n
+\n\code{class IEventCallback}
+\n The user implements this interface to handle the connection disruption events.
+Important: the methods of this interface must not call the APIs of the Client class, a deadlock danger. It has the next method:
+\n\code{virtual void ConnectionLost(void)}
+\n Is invoked if the connection with the node server was disrupted.
+\n\h{Classes}
+\n\code{class Client : public Engine::Object}
+\n Implements the cluster client. It has the next methods:
+\n\code{Client(void)}
+\n A constructor. Creates an uninitialized and disconnected client.
+\n\code{void SetConnectionIP(Engine::Network::Address ip)}
+\n Overrides the default (127.0.0.1) IP address of the node server.
+It has no effect if the client is already connected.
+\n\code{void SetConnectionPort(uint16 port)}
+\n Overrides the default (10666) port of the node server.
+It has no effect if the client is already connected.
+\n\code{void SetConnectionServiceID(const Engine::ImmutableString & id)}
+\n Sets the client service identifier. Must be set before the connection. It has no effect if the client is already connected.
+\n\code{void SetConnectionServiceName(const Engine::ImmutableString & id)}
+\n Sets the client service name. Must be set before the connection. It has no effect if the client is already connected.
+\n\code{void SetConnectionService(ServiceClass service)}
+\n Sets the client service to the predefined one. Overrides the SetConnectionServiceID and SetConnectionServiceName calls.
+It has no effect if the client is already connected.
+\n\code{void Connect(void)}
+\n Launches the server connection. The incoming packages and events are handled asynchronously in case of success.
+Throws the next exceptions:
+\n Engine::InvalidArgumentException if the service identifier and name were not set or are incorrect.
+\n Engine::FileAccessException if the network connection has failed.
+\n Engine::Exception on other failures.
+\n\code{void Disconnect(void)}
+\n Asynchronously disconnects from the node server.
+\n\code{void Wait(void)}
+\n Blocks the execution until a complete disconnection from the node server.
+\n\code{void SetEventCallback(IEventCallback * callback)}
+\n Sets an interface for connection disruption event notifications.
+\n\code{IEventCallback * GetEventCallback(void)}
+\n Returns a current interface for connection disruption event notifications.
+\n\code{ObjectAddress GetSelfAddress(void) const}
+\n Returns an address allocated for this client. Returns 0 if the client is not connected.
+\n\code{ObjectAddress GetNodeAddress(void) const}
+\n Returns an address of a node server of the node this client belongs to.
+\n\code{Engine::Array<NodeDesc> * EnumerateNodes(bool online_only = true)}
+\n Returns an array with cluster nodes. Returns only active nodes if online_only == true.
+The caller must release the array. Throws Engine::InvalidStateException if there is no connection.
+\n\code{NodeStatus QueryNodeStatus(ObjectAddress node)}
+\n Returns the status of the node with the address specified.
+Throws Engine::InvalidStateException if there is no connection.
+If there is no node server with such address, throws Engine::Exception.
+\n\code{Engine::Array<EndpointDesc> * EnumerateEndpoints(void)}
+\n\code{Engine::Array<EndpointDesc> * EnumerateEndpoints(const Engine::ImmutableString & service_id)}
+\n\code{Engine::Array<EndpointDesc> * EnumerateEndpoints(ObjectAddress node_on)}
+\n\code{Engine::Array<EndpointDesc> * EnumerateEndpoints(ObjectAddress node_on, const Engine::ImmutableString & service_id)}
+\n Returns an array with active cluster clients. Depending on the overload it can filter the clients by
+their service identifier or their node. The caller must release the array.
+Throws Engine::InvalidStateException if there is no connection.
+Throws Engine::Exception on other errors.
+\n\code{Engine::Streaming::ITextWriter * CreateLoggingService(void)}
+\n Creates an interface to write messages into the spreaded console.
+Throws Engine::InvalidStateException if there is no connection.
+The caller must release the interface.
+This interface retains the client object for its life time.
+
+\n\code{void SendMessage(Engine::uint32 verb, ObjectAddress to, const Engine::DataBlock * payload)}
+\n Sends a package with the verb specified to the participant specified with the payload specified,
+payload may be 0 to send an empty package.
+Throws Engine::InvalidStateException if there is no connection.
+\n\code{void RegisterCallback(IMessageCallback * callback)}
+\n\code{void RegisterCallback(IMessageCallback * callback, uint32 expiration_time)}
+\n\code{void RegisterCallback(IMessageCallback * callback, uint32 expiration_time, bool run_once)}
+\n Registers a handler for incoming packages on the client side.
+If an expiration_time not equal to 0 is specified, then the handler will be automatically unregistered after the time period specified (in milliseconds),
+the CallbackExpired event will be invoked. If run_once == true, then the handler will be automatically unregistered after the first package processed.
+\n\code{void RegisterOneTimeCallback(IMessageCallback * callback)}
+\n\code{void RegisterOneTimeCallback(IMessageCallback * callback, uint32 expiration_time)}
+\n Is the same as RegisterCallback with run_once == true.
+\n\code{void UnregisterCallback(IMessageCallback * callback)}
+\n Unregisters the callback specified from incoming package handling.

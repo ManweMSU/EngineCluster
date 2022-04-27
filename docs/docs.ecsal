@@ -1,0 +1,18 @@
+﻿ECSAL
+ExcludeMetadata = true
+"000000001" {
+	AccessTimeClass = 3
+	AddMetadata = true
+	AlterTimeClass = 3
+	CreationTimeClass = 3
+	Name = "en"
+	Source = "<ListPath>\\en.ecsa"
+}
+"000000002" {
+	AccessTimeClass = 3
+	AddMetadata = true
+	AlterTimeClass = 3
+	CreationTimeClass = 3
+	Name = "ru"
+	Source = "<ListPath>\\ru.ecsa"
+}

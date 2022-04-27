@@ -1,0 +1,133 @@
+﻿ECSAL
+"000000001" {
+	AddMetadata = true
+	CompressionBlock = 65536
+	CompressionChain = 19
+	CompressionQuality = 4
+	Name = "../Modules/ECFC/ClusterClient.cxx"
+	Source = "<ListPath>\\..\\ClusterClient.cxx"
+	"000000001" {
+		Key = "System"
+		Value = "*"
+	}
+}
+"000000002" {
+	AddMetadata = true
+	CompressionBlock = 65536
+	CompressionChain = 19
+	CompressionQuality = 4
+	Name = "../Modules/ECFC/ClusterClient.h"
+	Source = "<ListPath>\\..\\ClusterClient.h"
+	"000000001" {
+		Key = "System"
+		Value = "*"
+	}
+}
+"000000003" {
+	AddMetadata = true
+	CompressionBlock = 65536
+	CompressionChain = 19
+	CompressionQuality = 4
+	Name = "../Modules/ECFP/ClusterPackage.cxx"
+	Source = "<ListPath>\\..\\ClusterPackage.cxx"
+	"000000001" {
+		Key = "System"
+		Value = "*"
+	}
+}
+"000000004" {
+	AddMetadata = true
+	CompressionBlock = 65536
+	CompressionChain = 19
+	CompressionQuality = 4
+	Name = "../Modules/ECFP/ClusterPackage.h"
+	Source = "<ListPath>\\..\\ClusterPackage.h"
+	"000000001" {
+		Key = "System"
+		Value = "*"
+	}
+}
+"000000005" {
+	AddMetadata = true
+	CompressionBlock = 65536
+	CompressionChain = 19
+	CompressionQuality = 4
+	Name = "../Modules/ECFTC/ClusterClient.cxx"
+	Source = "<ListPath>\\..\\ClusterClient.cxx"
+	"000000001" {
+		Key = "System"
+		Value = "*"
+	}
+}
+"000000006" {
+	AddMetadata = true
+	CompressionBlock = 65536
+	CompressionChain = 19
+	CompressionQuality = 4
+	Name = "../Modules/ECFTC/ClusterClient.h"
+	Source = "<ListPath>\\..\\ClusterClient.h"
+	"000000001" {
+		Key = "System"
+		Value = "*"
+	}
+}
+"000000007" {
+	AddMetadata = true
+	CompressionBlock = 65536
+	CompressionChain = 19
+	CompressionQuality = 4
+	Name = "../Modules/ECFTC/ClusterTaskBase.h"
+	Source = "<ListPath>\\..\\ClusterTaskBase.h"
+	"000000001" {
+		Key = "System"
+		Value = "*"
+	}
+}
+"000000008" {
+	AddMetadata = true
+	CompressionBlock = 65536
+	CompressionChain = 19
+	CompressionQuality = 4
+	Name = "../Modules/ECFTC/ClusterTaskClient.cxx"
+	Source = "<ListPath>\\..\\ClusterTaskClient.cxx"
+	"000000001" {
+		Key = "System"
+		Value = "*"
+	}
+}
+"000000009" {
+	AddMetadata = true
+	CompressionBlock = 65536
+	CompressionChain = 19
+	CompressionQuality = 4
+	Name = "../Modules/ECFTC/ClusterTaskClient.h"
+	Source = "<ListPath>\\..\\ClusterTaskClient.h"
+	"000000001" {
+		Key = "System"
+		Value = "*"
+	}
+}
+"000000010" {
+	AddMetadata = true
+	CompressionBlock = 65536
+	CompressionChain = 19
+	CompressionQuality = 4
+	Name = "../Modules/ECFT/ClusterClient.h"
+	Source = "<ListPath>\\..\\ClusterClient.h"
+	"000000001" {
+		Key = "System"
+		Value = "*"
+	}
+}
+"000000011" {
+	AddMetadata = true
+	CompressionBlock = 65536
+	CompressionChain = 19
+	CompressionQuality = 4
+	Name = "../Modules/ECFT/ClusterTaskInterfaces.h"
+	Source = "<ListPath>\\..\\ClusterTaskInterfaces.h"
+	"000000001" {
+		Key = "System"
+		Value = "*"
+	}
+}

@@ -1,0 +1,4 @@
+﻿Subsystem = "library"
+CompileList {
+	AAAAAA = "fbkrnl.cxx"
+}

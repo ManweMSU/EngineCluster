@@ -1,0 +1,12 @@
+\hh{The Remote Console Control}\n\h{ecfcon}\n\t Prints the messages sent via the spreaded console. Syntax:
+\n\code{ecfcon [-i <IP>] [-p <PORT>] [-s] [-t] [-o <FILENAME>]}
+\n i - overrides the IP address of the node to connect. The default is 127.0.0.1.
+\n p - overrides the port of the node to connect. The default is 10666.
+\n s - tells not to print the sender address.
+\n t - tells to print the timestamp of the message.
+\n o - duplicate the output to the file specified. Any number of files may be specified.
+\n\h{ecfconwr}\n\t An interactive tool to send messages into the spreaded console.
+Write down an empty string to exit. Syntax:
+\n\code{ecfconwr [-i <IP>] [-p <PORT>]}
+\n i - overrides the IP address of the node to connect. The default is 127.0.0.1.
+\n p - overrides the port of the node to connect. The default is 10666.

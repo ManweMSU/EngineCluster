@@ -1,0 +1,87 @@
+\hh{ClusterTaskClient}\n\t All the objects introduced belong to the Engine::Cluster namespace.
+This module implements the client for spreaded computations. Included into the Engine Runtime module: ECFTC.
+\n\h{Constants - Node Error Codes}
+\n\code{constexpr uint32 HostStarted = 0x0000}
+\n The computational infrastructure was successfully created.
+\n\code{constexpr uint32 HostIsStarting = 0x0001}
+\n The computational infrastructure is starting now.
+\n\code{constexpr uint32 HostTimedOut = 0x8001}
+\n The computational infrastructure was not responding for too long and is considered as broken.
+\n\code{constexpr uint32 HostBusyNow = 0x8002}
+\n The node is already busy with another spreaded task.
+\n\code{constexpr uint32 HostDiscarded = 0x8003}
+\n The node has refused because it was not selected for spreaded computations by the user.
+\n\code{constexpr uint32 HostNoArchitecture = 0x8004}
+\n The kernel package has no asset with an appropriate architecture.
+\n\code{constexpr uint32 HostExtractionFailed = 0x8005}
+\n Package extraction failed.
+\n\code{constexpr uint32 HostCompilationFailed = 0x8006}
+\n The package has a source code asset, but the compilation have failed.
+\n\code{constexpr uint32 HostLaunchFailed = 0x8007}
+\n Failed to launch computation host process.
+\n\code{constexpr uint32 HostInitFailed = 0x8008}
+\n Computation host process initialization failure (may be wrong asset interface).
+\n\h{Constants - Computation Statuses}
+\n\code{constexpr uint32 TaskErrorSuccess = 0x0000}
+\n The computation succeeded.
+\n\code{constexpr uint32 TaskErrorInitializing = 0x0001}
+\n The cluster is still initializing the computational infrastructure.
+\n\code{constexpr uint32 TaskErrorWorking = 0x0002}
+\n The computation is still running.
+\n\code{constexpr uint32 TaskErrorNoNodesAvailable = 0xC001}
+\n Failed to launch the computation because there is no nodes ended up with HostStarted status.
+\n\code{constexpr uint32 TaskErrorInternalFailure = 0xC002}
+\n Failed to launch the computation because of some other error.
+\n\h{Data Types}
+\n\code{struct TaskHostDesc}
+\n A structure that describes the status of the computational node. Has the next fields:
+\n\code{ObjectAddress NodeAddress} - an address of the node server.
+\n\code{ObjectAddress HostAddress} - an address of the task host process.
+\n\code{Engine::uint32 TasksComplete} - an amount of completed tasks by this node.
+\n\code{Engine::uint32 TasksTotal} - a total amount of tasks on this node, 0xFFFFFFFF if node's progress is not defined.
+\n\code{Engine::uint32 HostStatus} - the node status (error code).
+\n\h{Classes}
+\n\code{class TaskClient : public Engine::Object}
+\n Implements the spreaded computation client. It has the next methods:
+\n\code{TaskClient(void)}
+\n A constructor. Creates a new client and performs some basic initialization.
+Throws Engine::Exception if the initialization have failed.
+\n\code{void SetConnectionIP(Engine::Network::Address ip)}
+\n Overrides the default (127.0.0.1) IP address of the node server (see the Client class).
+\n\code{void SetConnectionPort(Engine::uint16 port)}
+\n Overrides the default (10666) port of the node server (see the Client class).
+\n\code{void SetTaskExecutable(Engine::DataBlock * data)}
+\n Sets the computation kernel package. The client retains the data block for an undefined time.
+\n\code{void SetTaskInput(Engine::DataBlock * data)}
+\n Sets the input data for the computation. The client retains the data block for an undefined time.
+\n\code{void SetTaskInput(Engine::Reflection::Reflected & data)}
+\n Sets the input data for the computation on the basis of a reflected structure. The Main task of the kernel must have the same fields as 'data' structure.
+\n\code{void Start(void)}
+\n Connects to the node server and initiates the computation. Throws the same exceptions as Client::Connect in case of connection failure.
+In case of successfull connection the next node configuration is performed asynchronously.
+\n\code{Client * GetClusterClient(void)}
+\n Returns the connection Client object used for the connection. Returns 0 if there is no connection.
+The Client object belongs to the client. Caller must not release it.
+\n\code{int GetHostCount(void)}
+\n Returns the number of nodes participating in the computation.
+\n\code{void GetHostInfo(int range_min, int count, TaskHostDesc * desc)}
+\n Returns the information on nodes beginning with range_min into the array pointed by 'desc'.
+To get the information on all the nodes use range_min == 0 and count == GetHostCount() - 1.
+\n\code{void GetProgressInfo(Engine::uint32 * tasks_complete, Engine::uint32 * tasks_total)}
+\n Returns the common state of all computations into the variables pointed by the arguments.
+You can supply 0 pointer if you are not interested with this value.
+The value's semantics are the same as for TaskHostDesc but is global.
+\n\code{bool IsFinished(void)}
+\n Returns true if and only if the computation have finished (either successfully or not).
+\n\code{void Interrupt(void)}
+\n Asynchronously interrupts the computation.
+\n\code{void Wait(void)}
+\n Blocks the execution until the computation finishes.
+\n\code{Engine::uint32 GetTaskResultStatus(void)}
+\n Returns the status of the computational process.
+\n\code{void GetTaskResult(Engine::DataBlock ** data)}
+\n Sets the pointer pointed by 'data' to the data block pointer with the results of the computation.
+Sets the pointer to 0 if the computations were not finished successfully.
+The caller must release the data block.
+\n\code{void GetTaskResult(Engine::Reflection::Reflected & data)}
+\n Interprets the results of the computation as a reflected structure and copy it into the 'data'.

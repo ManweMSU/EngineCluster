@@ -1,0 +1,43 @@
+﻿## resource "UI"
+
+# Waffle
+
+resource string WindowTitle [ _ ru ] { "Cluster Fair Blur" "Cluster Fair Blur" }
+resource string TextImage { "Image" "Изображение" }
+resource string TextBlurFactor { "Blur factor:" "Сила размытия:" }
+resource string TextAllowMigration { "Allow task migration" "Разрешить миграцию задач" }
+resource string TextLoadFailed { "Failed to load the image." "Не удалось загрузить изображение." }
+resource string TextApply { "Apply" "Применить" }
+resource string TextNoNodes { "No nodes available on cluster." "Нет свободных узлов в кластере." }
+resource string TextFailure { "Internal cluster failure." "Внутренний сбой кластера." }
+resource string TextUnknown { "Unknown cluster error." "Неизвестный сбой кластера." }
+resource string TextSaveFailed { "Failed to save the image." "Не удалось сохранить изображение." }
+resource string TextNoCluster { "Cluster is not available." "Кластер не доступен." }
+
+dialog Startup {
+	DialogFrame {
+		position { 0, 0, z 800, z 600 }
+		Captioned Sizeble CloseButton MaximizeButton MinimizeButton
+		MinimalWidth z 400 MinimalHeight z 300 Title WindowTitle
+		Static {
+			position { z 5, z 5, w 1 z -5, w 1 z -71 }
+			ID 101
+		}
+		Static {
+			position { z 5, w 1 z -66, z 150, w 1 z -38 }
+			Text TextBlurFactor
+		}
+		Edit {
+			position { z 150, w 1 z -66, w 1 z -5, w 1 z -38 }
+			ID 102 CharactersEnabled "0123456789" Text "30"
+		}
+		CheckBox {
+			position { z 5, w 1 z -33, w 1 z -110, w 1 z -5 }
+			Text TextAllowMigration ID 103 Checked
+		}
+		Button {
+			position { w 1 z -105, w 1 z -33, w 1 z -5, w 1 z -5 }
+			ID 1 Text TextApply
+		}
+	}
+}

@@ -1,0 +1,522 @@
+﻿## resource "UI"
+
+# Waffle
+
+resource texture IconShutdown { & "artwork/button_shutdown.eiwv" }
+resource texture IconHelp { & "artwork/button_help.eiwv" }
+resource texture IconGreenlight { & "artwork/icon_greenlight.eiwv" }
+resource texture IconGreenlightI { & "artwork/icon_greenlight.eiwv" BlindGrayscale }
+resource texture IconCreateNet { & "artwork/button_create_net.eiwv" }
+resource texture IconJoinNet { & "artwork/button_join_net.eiwv" }
+resource texture IconForgetNet { & "artwork/button_forget_net.eiwv" }
+resource texture IconForgetNetI { & "artwork/button_forget_net.eiwv" BlindGrayscale }
+resource texture IconAutoconnectNet { & "artwork/button_autoconnect_net.eiwv" }
+resource texture IconAutoconnectNetI { & "artwork/button_autoconnect_net.eiwv" BlindGrayscale }
+resource texture IconConnectNet { & "artwork/button_connect_net.eiwv" }
+resource texture IconConnectNetI { & "artwork/button_connect_net.eiwv" BlindGrayscale }
+resource texture IconDisconnectNet { & "artwork/button_disconnect_net.eiwv" }
+resource texture IconDisconnectNetI { & "artwork/button_disconnect_net.eiwv" BlindGrayscale }
+resource texture IconAllowJoinNet { & "artwork/button_allow_join_net.eiwv" }
+resource texture IconAllowJoinNetI { & "artwork/button_allow_join_net.eiwv" BlindGrayscale }
+resource texture IconLeaveNet { & "artwork/button_leave_net.eiwv" }
+resource texture IconLeaveNetI { & "artwork/button_leave_net.eiwv" BlindGrayscale }
+resource texture IconSelectNodes { & "artwork/button_select_nodes.eiwv" }
+resource texture IconSelectNodesI { & "artwork/button_select_nodes.eiwv" BlindGrayscale }
+resource texture IconPowerSelf { & "artwork/icon_power_self.eiwv" }
+resource texture IconPowerCharging { & "artwork/icon_power_charging.eiwv" }
+resource texture IconPowerDischarging { & "artwork/icon_power_discharging.eiwv" }
+resource texture IconPowerNet { & "artwork/icon_power_net.eiwv" }
+
+resource string TextAllowJoinConfirmation [ _ ru ] {
+	"Do you want to allow an another server to join the current net?"
+	"Вы желаете разрешить другому серверу присоединиться к этой сети?"
+}
+resource string TextFailedToConnect [ _ ru ] {
+	"The server failed to launch network services required to connect to the net."
+	"Серверу не удалось запустить сетевые службы, необходимые для подключения к сети."
+}
+resource string TextFailedToJoin [ _ ru ] {
+	"The server failed to join a net with the addresses and ports specified."
+	"Серверу не удалось присоединиться к сети по указанным адресу и портам."
+}
+resource string TextNetForgetConfirmation [ _ ru ] {
+	"Do you shurely want to forget this net unilaterally?"
+	"Вы действительно желаете забыть эту сеть в одностороннем порядке?"
+}
+resource string TextNodeRemoveConfirmation [ _ ru ] {
+	"Do you shurely want to remove this node from this net?"
+	"Вы действительно желаете исключить этот узел из данной сети?"
+}
+resource string TextNetCannotForgetActiveNet [ _ ru ] {
+	"The active net cannot be forgotten. Disconnect in order to forget it."
+	"Невозможно забыть активную сеть. Отключитесь от этой сети чтобы забыть её."
+}
+resource string TextSelectNodeName [ _ ru ] {
+	"Please, select node name and UUID"
+	"Пожалуйста, выберите имя и UUID узла"
+}
+resource string TextUniqueNodeName [ _ ru ] {
+	"Unique node name"
+	"Уникальное имя узла"
+}
+resource string TextUniqueNetName [ _ ru ] {
+	"Unique net name"
+	"Уникальное имя сети"
+}
+resource string TextConnectToNode [ _ ru ] {
+	"A node address to join:"
+	"Адрес узла, к которому надо присоединиться:"
+}
+resource string TextConnectSelfPort [ _ ru ] {
+	"An address of this node in the net:"
+	"Адрес этого узла в этой сети:"
+}
+resource string TextName [ _ ru ] { "Name:" "Имя:" }
+resource string TextUUID [ _ ru ] { "UUID:" "UUID:" }
+resource string TextIP [ _ ru ] { "IP:" "IP:" }
+resource string TextPort [ _ ru ] { "Port:" "Порт:" }
+resource string TextCancel [ _ ru ] { "Cancel" "Отмена" }
+resource string TextClose [ _ ru ] { "Close" "Закрыть" }
+resource string TextSelect [ _ ru ] { "Select" "Выбрать" }
+resource string TextCreate [ _ ru ] { "Create" "Создать" }
+resource string TextJoin [ _ ru ] { "Join" "Войти" }
+resource string TextHelp [ _ ru ] { "Help" "Вызов справки" }
+resource string TextAbout [ _ ru ] { "About" "О программе" }
+resource string TextNets [ _ ru ] { "Nets" "Сети" }
+resource string TextNodes [ _ ru ] { "Nodes" "Узлы" }
+resource string TextPower [ _ ru ] { "Power" "Питание" }
+resource string TextLoad [ _ ru ] { "Load" "Нагрузка" }
+resource string TextProgress [ _ ru ] { "Progress" "Состояние" }
+resource string TextNameNS [ _ ru ] { "Name" "Имя" }
+resource string TextUUIDNS [ _ ru ] { "UUID" "UUID" }
+resource string TextA [ _ ru ] { "A" "A" }
+resource string TextNewNetCreation [ _ ru ] { "Creating a new net" "Создание новой сети" }
+resource string TextJoinNet [ _ ru ] { "Join a net" "Присоединение к сети" }
+resource string TextWatchServices [ _ ru ] { "Watch node services" "Просмотреть службы узла" }
+resource string TextWatchInfo [ _ ru ] { "Watch node information" "Просмотреть свойства узла" }
+resource string TextInterrupt [ _ ru ] { "Interrupt work" "Прервать работу" }
+resource string TextControlServer [ _ ru ] { "Server control" "Управлять сервером" }
+resource string TextShutdownServer [ _ ru ] { "Shutdown server" "Выключить сервер" }
+resource string TextShutdownPC [ _ ru ] { "Shutdown PC" "Выключить ЭВМ" }
+resource string TextRestartPC [ _ ru ] { "Restart" "Перезагрузить" }
+resource string TextLogoutPC [ _ ru ] { "Logout" "Завершить сессию" }
+resource string TextHybernatePC [ _ ru ] { "Hybernate" "Перевести в режим сна" }
+resource string TextIdle [ _ ru ] { "Idle" "Свободен" }
+resource string TextInit [ _ ru ] { "Starting..." "Запуск..." }
+resource string TextUnknown [ _ ru ] { "Unknown" "Не известно" }
+resource string TextReady [ _ ru ] { "%0%% ready" "%0%% готово" }
+resource string TextNodeInfo [ _ ru ] { "Node information" "Свойства узла" }
+resource string TextNodeServices [ _ ru ] { "Node services" "Службы узла" }
+resource string TextSelectNodes [ _ ru ] { "Select nodes for computation" "Выбор узлов для вычислений" }
+resource string TextProperty [ _ ru ] { "Property" "Свойство" }
+resource string TextValue [ _ ru ] { "Value" "Значение" }
+resource string TextNodeName [ _ ru ] { "Node name" "Имя узла" }
+resource string TextNodeAddress [ _ ru ] { "Node address" "Адрес узла" }
+resource string TextOS [ _ ru ] { "OS" "ОС" }
+resource string TextWindowsOS [ _ ru ] { "Windows" "Windows" }
+resource string TextMacOS [ _ ru ] { "Mac OS" "Mac OS" }
+resource string TextVersionOS [ _ ru ] { "OS version" "Версия ОС" }
+resource string TextMemory [ _ ru ] { "RAM memory onboard" "Доступный объём ОЗУ" }
+resource string TextMemoryStringMB [ _ ru ] { "%0 MB" "%0 МБ" }
+resource string TextNameCPU [ _ ru ] { "CPU name" "Имя ЦП" }
+resource string TextArchCPU [ _ ru ] { "CPU architecture" "Архитектура ЦП" }
+resource string TextArchX86 [ _ ru ] { "Intel x86" "Intel x86" }
+resource string TextArchX64 [ _ ru ] { "Intel x86-64" "Intel x86-64" }
+resource string TextArchARM [ _ ru ] { "ARM" "ARM" }
+resource string TextArchARM64 [ _ ru ] { "ARM64" "ARM64" }
+resource string TextClockCPU [ _ ru ] { "CPU clock frequency" "Тактовая частота ЦП" }
+resource string TextClockCPUHZ [ _ ru ] { "%0.%1 GHz" "%0,%1 ГГц" }
+resource string TextCoresPhysical [ _ ru ] { "Physical cores" "Физические ядра" }
+resource string TextCoresVirtual [ _ ru ] { "Virtual cores" "Виртуальные ядра" }
+resource string TextServiceNode [ _ ru ] { "Cluster node" "Узел кластера" }
+resource string TextServiceWorkClient [ _ ru ] { "Cluster work client" "Клиент рабочего подряда" }
+resource string TextServiceWorkHost [ _ ru ] { "Cluster work host" "Среда рабочего подряда" }
+resource string TextServiceTextLogger [ _ ru ] { "Cluster text logger" "Консоль кластера" }
+resource string TextService [ _ ru ] { "Service" "Служба" }
+resource string TextServiceID [ _ ru ] { "Service ID" "Идентификатор" }
+resource string TextAddress [ _ ru ] { "Address" "Адрес" }
+resource string TextAboutVersion [ _ ru ] { "Version %0" "Версия %0" }
+resource string TextAboutPlatform [ _ ru ] { "Build for %0 on %1" "Собрано для %0 на %1" }
+resource string TextHelpTitle [ _ ru ] { "Documentation - Engine Cluster Framework" "Документация - Engine Cluster Framework" }
+resource string TextHelpBack [ _ ru ] { "Back" "Назад" }
+resource string TextHelpNext [ _ ru ] { "Forward" "Вперёд" }
+resource string TextHelpHome [ _ ru ] { "Beginning" "Начало" }
+resource string TextHelpIndex [ _ ru ] { "Index" "Индекс" }
+
+dialog SelfSetup {
+	DialogFrame {
+		position { 0, 0, z 420, z 147 }
+		Captioned Title "Engine Cluster Framework"
+		CloseButton MinimizeButton
+		ControlGroup {
+			style WaffleFrame
+			position { z 5, z 5, w 1 z -5, z 109 }
+			Static { position { z 5, z 5, w 1 z -5, z 33 } Text TextSelectNodeName }
+			Static { position { z 5, z 38, z 65, z 66 } Text TextName }
+			Edit { position { z 65, z 38, w 1 z -5, z 66 } ID 101 Placeholder TextUniqueNodeName }
+			Static { position { z 5, z 71, z 65, z 99 } Text TextUUID }
+			Edit { position { z 65, z 71, w 1 z -5, z 99 } ID 102 }
+		}
+		Button { position { z 5, z 114, z 105, z 142 } Text TextCancel ID 2 }
+		Button { position { w 1 z -138, z 114, w 1 z -110, z 142 } Text "?" ID 3 }
+		Button { position { w 1 z -105, z 114, w 1 z -5, z 142 } Text TextSelect ID 1 }
+	}
+}
+dialog NewNetSetup {
+	DialogFrame {
+		position { 0, 0, z 420, z 147 }
+		Captioned Title TextNewNetCreation CloseButton
+		ControlGroup {
+			style WaffleFrame
+			position { z 5, z 5, w 1 z -5, z 109 }
+			Static { position { z 5, z 5, z 65, z 33 } Text TextName }
+			Edit { position { z 65, z 5, w 1 z -5, z 33 } ID 101 Placeholder TextUniqueNetName }
+			Static { position { z 5, z 38, z 65, z 66 } Text TextUUID }
+			Edit { position { z 65, z 38, w 1 z -5, z 66 } ID 102 }
+			Static { position { z 5, z 71, z 65, z 99 } Text TextPort }
+			Edit { position { z 65, z 71, w 1 z -5, z 99 } ID 103 CharactersEnabled "0123456789" }
+		}
+		Button { position { z 5, z 114, z 105, z 142 } Text TextCancel ID 2 }
+		Button { position { w 1 z -105, z 114, w 1 z -5, z 142 } Text TextCreate ID 1 }
+	}
+}
+dialog JoinNetSetup {
+	DialogFrame {
+		position { 0, 0, z 420, z 213 }
+		Captioned Title TextJoinNet CloseButton
+		ControlGroup {
+			style WaffleFrame
+			position { z 5, z 5, w 1 z -5, z 175 }
+			Static { position { z 5, z 5, w 1 z -5, z 33 } Text TextConnectToNode }
+			Static { position { z 5, z 38, z 65, z 66 } Text TextIP }
+			Edit { position { z 65, z 38, w 1 z -5, z 66 } ID 101 }
+			Static { position { z 5, z 71, z 65, z 99 } Text TextPort }
+			Edit { position { z 65, z 71, w 1 z -5, z 99 } ID 102 CharactersEnabled "0123456789" }
+			Static { position { z 5, z 104, w 1 z -5, z 132 } Text TextConnectSelfPort }
+			Static { position { z 5, z 137, z 65, z 165 } Text TextPort }
+			Edit { position { z 65, z 137, w 1 z -5, z 165 } ID 103 CharactersEnabled "0123456789" }
+		}
+		Button { position { z 5, z 180, z 105, z 208 } Text TextCancel ID 2 }
+		Button { position { w 1 z -105, z 180, w 1 z -5, z 208 } Text TextJoin ID 1 }
+	}
+}
+dialog ShowNodeInfo {
+	DialogFrame {
+		position { 0, 0, z 550, z 400 }
+		Captioned Title TextNodeInfo CloseButton Sizeble
+		MinimalWidth z 400 MinimalHeight z 250
+		ListView {
+			position { z 5, z 5, w 1 z -5, w 1 z -38 } ID 101
+			ListViewColumn {
+				position { 0, 0, z 200, 0 } MinimalWidth z 100
+				Text TextProperty
+				ViewElementNormal { text {
+					position { z 5, 0, w 1, w 1 }
+					text @ Property font @ Font color { 0, 0, 0 } vcenter
+				} }
+			}
+			ListViewColumn {
+				position { 0, 0, w 1 z -220, 0 } MinimalWidth z 100
+				Text TextValue
+				ViewElementNormal { text {
+					position { z 5, 0, w 1, w 1 }
+					text @ Value font @ Font color { 0, 0, 0 } vcenter
+				} }
+			}
+		}
+		Button { position { w 1 z -105, w 1 z -33, w 1 z -5, w 1 z -5 } Text TextClose ID 1 }
+	}
+}
+dialog ShowServices {
+	DialogFrame {
+		position { 0, 0, z 550, z 400 }
+		Captioned Title TextNodeServices CloseButton Sizeble
+		MinimalWidth z 400 MinimalHeight z 250
+		ListView {
+			position { z 5, z 5, w 1 z -5, w 1 z -38 } ID 101
+			ListViewColumn {
+				position { 0, 0, z 180, 0 } MinimalWidth z 100
+				Text TextService
+				ViewElementNormal { text {
+					position { z 5, 0, w 1, w 1 }
+					text @ Service font @ Font color { 0, 0, 0 } vcenter
+				} }
+			}
+			ListViewColumn {
+				position { 0, 0, z 140, 0 } MinimalWidth z 100
+				Text TextAddress
+				ViewElementNormal { text {
+					position { z 5, 0, w 1, w 1 }
+					text @ Address font @ Font color { 0, 0, 0 } vcenter
+				} }
+			}
+			ListViewColumn {
+				position { 0, 0, z 200, 0 } MinimalWidth z 100
+				Text TextServiceID
+				ViewElementNormal { text {
+					position { z 5, 0, w 1, w 1 }
+					text @ ServiceID font @ Font color { 0, 0, 0 } vcenter
+				} }
+			}
+		}
+		Button { position { w 1 z -105, w 1 z -33, w 1 z -5, w 1 z -5 } Text TextClose ID 1 }
+	}
+}
+dialog SelectNodes {
+	DialogFrame {
+		position { 0, 0, z 550, z 400 }
+		Captioned Title TextSelectNodes CloseButton Sizeble
+		MinimalWidth z 400 MinimalHeight z 250
+		ListBox { position { z 5, z 5, w 1 z -5, w 1 z -38 } ID 101 MultiChoose }
+		Button { position { z 5, w 1 z -33, z 105, w 1 z -5 } Text TextCancel ID 2 }
+		Button { position { w 1 z -105, w 1 z -33, w 1 z -5, w 1 z -5 } Text TextSelect ID 1 }
+	}
+}
+
+dialog NodeContextMenu { PopupMenu {
+	MenuItem { Text TextWatchServices ID 301 }
+	MenuItem { Text TextWatchInfo ID 302 }
+	MenuSeparator {}
+	MenuItem { Text TextInterrupt ID 303 }
+	MenuSeparator {}
+	MenuItem { Text TextControlServer
+		MenuItem { Text TextShutdownServer ID 304 }
+		MenuItem { Text TextShutdownPC ID 305 }
+		MenuItem { Text TextRestartPC ID 306 }
+		MenuItem { Text TextLogoutPC ID 307 }
+		MenuItem { Text TextHybernatePC ID 308 }
+	}
+} }
+
+dialog Help {
+	DialogFrame {
+		position { 0, 0, w 1.0 z -20, w 1.0 z -20 }
+		Captioned Title TextHelpTitle Sizeble
+		CloseButton MinimizeButton MaximizeButton
+		MinimalWidth z 425 MinimalHeight z 100
+		Background null DefaultBackground
+		Button {
+			position { z 5, z 5, z 105, z 33 }
+			ID 1 Text TextHelpBack
+		}
+		Button {
+			position { z 110, z 5, z 210, z 33 }
+			ID 2 Text TextHelpNext
+		}
+		Button {
+			position { z 215, z 5, z 315, z 33 }
+			ID 3 Text TextHelpHome
+		}
+		Button {
+			position { z 320, z 5, z 420, z 33 }
+			ID 4 Text TextHelpIndex
+		}
+		RichEdit {
+			position { z 5, z 38, w 1.0 z -5, w 1.0 z -5 }
+			ID 101 SelectionColor { SelectedBackground } DefaultTextColor { WindowText }
+			HyperlinkColor { Hyperlink } HyperlinkHotColor { Hyperlink }
+			ReadOnly DontCopyAttributes
+		}
+	}
+}
+dialog About {
+	DialogFrame {
+		position { 0, 0, z 450, z 153 }
+		Captioned Title "Engine Cluster Framework" CloseButton HelpButton
+		ControlGroup {
+			ID 100
+			style WaffleFrame
+			position { z 5, z 5, w 1 z -5, w 1 z -38 }
+			Static {
+				position { z 110, z 5, w 1 z -5, z 25 }
+				ID 101
+			}
+			Static {
+				position { z 110, z 31, w 1 z -5, z 51 }
+				ID 102
+			}
+			Static {
+				position { z 110, z 58, w 1 z -5, z 78 }
+				ID 103 Text TextAboutVersion
+			}
+			Static {
+				position { z 110, z 85, w 1 z -5, z 105 }
+				ID 104 Text TextAboutPlatform
+			}
+		}
+		Button {
+			position { w 1 z -105, w 1 z -33, w 1 z -5, w 1 z -5 }
+			ID 1 Text TextClose
+		}
+	}
+}
+dialog Main {
+	DialogFrame {
+		position { 0, 0, z 600, z 350 }
+		Captioned Title "Engine Cluster Framework" Sizeble
+		CloseButton MinimizeButton MaximizeButton
+		MinimalWidth z 400 MinimalHeight z 250
+		BookmarkView {
+			position { z 5, z 5, w 1 z -5, w 1 z -5 } ID 10
+			Bookmark {
+				position { 0, 0, z 120, 0 }
+				Text TextNets ID 11
+				ControlGroup {
+					position parent
+					ListView {
+						position { z 5, z 5, w 1 z -38, w 1 z -5 }
+						ID 101
+						ListViewColumn {
+							position { 0, 0, z 28, 0 } MinimalWidth z 28
+							ViewElementNormal { texture {
+								position parent
+								texture @ Greenlight no_stretch
+							} }
+						}
+						ListViewColumn {
+							position { 0, 0, z 220, 0 } MinimalWidth z 100
+							Text TextNameNS
+							ViewElementNormal { text {
+								position { z 5, 0, w 1, w 1 }
+								text @ Name font @ Font color { 0, 0, 0 } vcenter
+							} }
+						}
+						ListViewColumn {
+							position { 0, 0, z 28, 0 } MinimalWidth z 28
+							Text TextA
+							ViewElementNormal { text {
+								position { z 5, 0, w 1, w 1 }
+								text @ Autoconnect font @ Font color { 0, 0, 0 } vcenter
+							} }
+						}
+						ListViewColumn {
+							position { 0, 0, z 320, 0 } MinimalWidth z 100
+							Text TextUUIDNS
+							ViewElementNormal { text {
+								position { z 5, 0, w 1, w 1 }
+								text @ UUID font @ Font color { 0, 0, 0 } vcenter
+							} }
+						}
+					}
+					Button {
+						position { w 1 z -33, z 5, w 1 z -5, z 33 }
+						ImageNormal IconCreateNet ID 102
+					}
+					Button {
+						position { w 1 z -33, z 38, w 1 z -5, z 66 }
+						ImageNormal IconJoinNet ID 103
+					}
+					Button {
+						position { w 1 z -33, z 71, w 1 z -5, z 99 }
+						ImageNormal IconForgetNet ImageGrayed IconForgetNetI ID 104
+					}
+					Button {
+						position { w 1 z -33, z 104, w 1 z -5, z 132 }
+						ImageNormal IconAutoconnectNet ImageGrayed IconAutoconnectNetI ID 105
+					}
+					Button {
+						position { w 1 z -33, z 137, w 1 z -5, z 165 }
+						ImageNormal IconConnectNet ImageGrayed IconConnectNetI ID 106
+					}
+					Button {
+						position { w 1 z -33, z 170, w 1 z -5, z 198 }
+						ImageNormal IconDisconnectNet ImageGrayed IconDisconnectNetI ID 107
+					}
+				}
+			}
+			Bookmark {
+				position { 0, 0, z 120, 0 }
+				Text TextNodes ID 12
+				ControlGroup {
+					position parent
+					ListView {
+						position { z 5, z 5, w 1 z -38, w 1 z -5 }
+						ID 201
+						ListViewColumn {
+							position { 0, 0, z 28, 0 } MinimalWidth z 28
+							ViewElementNormal { texture {
+								position parent
+								texture @ Greenlight no_stretch
+							} }
+						}
+						ListViewColumn {
+							position { 0, 0, z 220, 0 } MinimalWidth z 100
+							Text TextNameNS
+							ViewElementNormal { text {
+								position { z 5, 0, w 1, w 1 }
+								text @ Name font @ Font color { 0, 0, 0 } vcenter
+							} }
+						}
+						ListViewColumn {
+							position { 0, 0, z 100, 0 } MinimalWidth z 100
+							Text TextPower
+							ViewElementNormal { frame {
+								texture { position { 0, 0, z 28, w 1 } texture @ PowerSource no_stretch }
+								text {
+									position { z 33, 0, w 1, w 1 }
+									text @ PowerLevel font @ Font color { 0, 0, 0 } vcenter
+								}
+							} }
+						}
+						ListViewColumn {
+							position { 0, 0, z 150, 0 } MinimalWidth z 100
+							Text TextLoad
+							ViewElementNormal { text {
+								position { z 5, 0, w 1, w 1 }
+								text @ Load font @ Font color { 0, 0, 0 } vcenter
+							} }
+						}
+						ListViewColumn {
+							position { 0, 0, z 200, 0 } MinimalWidth z 100
+							Text TextProgress
+							ViewElementNormal { frame {
+								position { z 2, z 2, w 1 z -2, w 1 z -2 }
+								clone Progress
+							} }
+						}
+					}
+					Button {
+						position { w 1 z -33, z 5, w 1 z -5, z 33 }
+						ImageNormal IconConnectNet ImageGrayed IconConnectNetI ID 202
+					}
+					Button {
+						position { w 1 z -33, z 38, w 1 z -5, z 66 }
+						ImageNormal IconDisconnectNet ImageGrayed IconDisconnectNetI ID 203
+					}
+					Button {
+						position { w 1 z -33, z 71, w 1 z -5, z 99 }
+						ImageNormal IconAllowJoinNet ImageGrayed IconAllowJoinNetI ID 204
+					}
+					Button {
+						position { w 1 z -33, z 104, w 1 z -5, z 132 }
+						ImageNormal IconLeaveNet ImageGrayed IconLeaveNetI ID 205
+					}
+					Button {
+						position { w 1 z -33, z 137, w 1 z -5, z 165 }
+						ImageNormal IconSelectNodes ImageGrayed IconSelectNodesI ID 206
+					}
+				}
+			}
+		}
+		ControlGroup {
+			position { w 1 z -80, 0, w 1, z 33 }
+			ToolButton {
+				position { w 1 z -78, z 2, w 1 z -38, z 30 }
+				ToolButtonPart {
+					position { 0, 0, z 28, z 28 }
+					ImageNormal IconHelp ID 1
+				}
+				ToolButtonPart {
+					style ToolButtonDropDown
+					position { z 28, 0, w 1, w 1 }
+					DropDownMenu { PopupMenu {
+						MenuItem { Text TextHelp RightText "F1" ID 1 }
+						MenuSeparator {}
+						MenuItem { Text TextAbout ID 3 }
+					} }
+				}
+			}
+			ToolButton { position { w 1 z -33, z 2, w 1 z -5, z 30 } ToolButtonPart { position parent ImageNormal IconShutdown ID 2 } }
+		}
+	}
+}

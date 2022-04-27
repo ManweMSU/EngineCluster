@@ -1,0 +1,65 @@
+\hh{ClusterPackage}\n\t All the objects introduced belong to the Engine::Cluster namespace.
+This module implements the package management. Included into the Engine Runtime module: ECFP.
+\n\h{Constants}
+\n\code{constexpr widechar * PackageAssetWindows = L"windows"}
+\n A word for Microsoft Windows asset.
+\n\code{constexpr widechar * PackageAssetMacOS = L"macosx"}
+\n A word for Apple Mac OS asset.
+\n\code{constexpr widechar * PackageAssetX86 = L"x86"}
+\n A word for IA-32 processor.
+\n\code{constexpr widechar * PackageAssetX64 = L"x64"}
+\n A word for IA-64 processor.
+\n\code{constexpr widechar * PackageAssetARM = L"arm"}
+\n A word for ARM processor.
+\n\code{constexpr widechar * PackageAssetARM64 = L"arm64"}
+\n A word for ARM64 processor.
+\n\code{constexpr widechar * PackageAssetSources = L"sources"}
+\n A word for source code asset.
+\n\h{Data Types}
+\n\code{struct PackageAssetDesc}
+\n A structure that describes an asset. Has the next fields:
+\n\code{Engine::Array<Engine::ImmutableString> Words} - an array of words associated with the asset.
+\n\code{Engine::ImmutableString RootFile} - a root file (entry point) of the asset.
+\n\code{Engine::handle Handle} - a handle to the asset.
+\n
+\n\code{struct PackageFileDesc}
+\n A structure that describes a file in the package. Has the next fields:
+\n\code{Engine::ImmutableString Path} - a relative path to the file.
+\n\code{Engine::Time DateCreated} - file creation timestamp.
+\n\code{Engine::Time DateAltered} - file last modification timestamp.
+\n\code{Engine::Time DateAccessed} - file last access timestamp.
+\n\code{Engine::handle Handle} - file's handle.
+\n\h{Classes}
+\n\code{class Package : public Engine::Object}
+\n Provides a read-only access to a package loaded. It has the next methods:
+\n\code{Package(Engine::Streaming::Stream * stream)}
+\n A constructor. Loads the package data from the stream supplied. The stream is retained for the life time of the Package object.
+Throws Engine::InvalidFormatException if the data in the stream is not a valid package.
+\n\code{Engine::Array<PackageAssetDesc> * EnumerateAssets(void)}
+\n Returns an array of descriptions of all the assets within the package.
+The caller must release the array.
+\n\code{PackageAssetDesc * FindAsset(const Engine::ImmutableString & word_1 = L"", const Engine::ImmutableString & word_2 = L"")}
+\n Returns a pointer to a description of an asset, finded by the words supplied. Returns 0 if there is no such asset.
+The description belongs to the Package object, the caller must not release it.
+\n\code{Engine::Array<PackageFileDesc> * EnumerateFiles(Engine::handle asset)}
+\n Returns an array of descriptions of all files within an asset with the handle supplied. The caller must release the array.
+\n\code{Engine::Streaming::Stream * OpenFile(Engine::handle file)}
+\n Returns a read-only random-access stream with the data of the file specified.
+The caller must release the stream. The stream retains the Package object for its life time.
+\n
+\n\code{class PackageBuilder : public Engine::Object}
+\n Creates a new package. It has the next methods:
+\n\code{PackageBuilder(Engine::Streaming::Stream * stream)}
+\n A constructor. Begins a creation of the package in the stream supplied. The stream is retained for the life time of the PackageBuilder object.
+\n\code{Engine::handle CreateAsset(const Engine::ImmutableString & word_1 = L"", const Engine::ImmutableString & word_2 = L"")}
+\n Creates a new asset with the words supplied. Returns its handle.
+\n\code{void SetAssetRootFile(Engine::handle asset, const Engine::ImmutableString & path)}
+\n Sets the root file path of the asset specified.
+\n\code{void AddDirectory(Engine::handle asset_to, const Engine::ImmutableString & name)}
+\n Adds a directory with the name specified into an asset.
+\n\code{void AddFile(const Engine::ImmutableString & path, Engine::handle asset_to, const Engine::ImmutableString & name)}
+\n Adds a file with the name specified into the asset. The file's data and dates are imported from the existing file 'path'.
+\n\code{void AddFile(const Engine::DataBlock * data, Engine::Time date_created, Engine::Time date_altered, Engine::Time date_accessed, Engine::handle asset_to, const Engine::ImmutableString & name)}
+\n Adds a file with the name specified into the asset. The file's data and dates are imported from the arguments of this call.
+\n\code{void Finalize(void)}
+\n Ends the package creation.

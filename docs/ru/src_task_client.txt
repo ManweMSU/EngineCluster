@@ -1,0 +1,87 @@
+\hh{ClusterTaskClient}\n\tВсе вводимые объекты определены в пространстве имён Engine::Cluster.
+Данный модуль реализует клиента распределённых вычислений. Включён в модуль Engine Runtime: ECFTC.
+\n\h{Константы - коды ошибок узлов}
+\n\code{constexpr uint32 HostStarted = 0x0000}
+\nВычислительная инфраструктура успешно запущена на узле.
+\n\code{constexpr uint32 HostIsStarting = 0x0001}
+\nВычислительная инфраструктура находится в процессе запуска на узле.
+\n\code{constexpr uint32 HostTimedOut = 0x8001}
+\nВычислительная инфраструктура слишком долго не уведомляла о своём состоянии и считается не работающей.
+\n\code{constexpr uint32 HostBusyNow = 0x8002}
+\nУзел уже выполняет распределённую задачу и не может взять новую.
+\n\code{constexpr uint32 HostDiscarded = 0x8003}
+\nУзел отказал в принятии распределённой задачи так как этого пожелал пользователь сервера.
+\n\code{constexpr uint32 HostNoArchitecture = 0x8004}
+\nПакет не содержит версии ядра вычислений под приемлемую для узла архитектуру.
+\n\code{constexpr uint32 HostExtractionFailed = 0x8005}
+\nСбой извлечения файлов из пакета.
+\n\code{constexpr uint32 HostCompilationFailed = 0x8006}
+\nПакет содержал версию вычислительного ядра в виде исходного кода, но компиляция не удалась.
+\n\code{constexpr uint32 HostLaunchFailed = 0x8007}
+\nСбой запуска изолированного процесса для вычислений.
+\n\code{constexpr uint32 HostInitFailed = 0x8008}
+\nСбой инициализации изолированного процесса для вычислений.
+\n\h{Константы - коды статусов вычисления}
+\n\code{constexpr uint32 TaskErrorSuccess = 0x0000}
+\nВычисление успешно завершено.
+\n\code{constexpr uint32 TaskErrorInitializing = 0x0001}
+\nВычисление находится на этапе подготовки узлов к вычислению.
+\n\code{constexpr uint32 TaskErrorWorking = 0x0002}
+\nВычисление находится на этапе счёта.
+\n\code{constexpr uint32 TaskErrorNoNodesAvailable = 0xC001}
+\nВычисление невозможно, так как ни один узел не смог прийти в состояние HostStarted.
+\n\code{constexpr uint32 TaskErrorInternalFailure = 0xC002}
+\nВычисление невозможно из-за иного сбоя.
+\n\h{Типы данных}
+\n\code{struct TaskHostDesc}
+\nСтруктура, описывающая состояние узла вычислений. Имеет поля:
+\n\code{ObjectAddress NodeAddress} - адрес сервера узла.
+\n\code{ObjectAddress HostAddress} - адрес изолированного процесса вычислений.
+\n\code{Engine::uint32 TasksComplete} - количество выполненных узлом задач.
+\n\code{Engine::uint32 TasksTotal} - общее количество задач на узле, 0xFFFFFFFF если прогресс узла не определён.
+\n\code{Engine::uint32 HostStatus} - статус узла (код ошибки).
+\n\h{Классы}
+\n\code{class TaskClient : public Engine::Object}
+\nРеализует клиента распределённых вычислений. Имеет методы:
+\n\code{TaskClient(void)}
+\nКонструктор. Создаёт клиент распределённых вычислений и проводит его первичную инициализацию.
+Вызывает Engine::Exception, если инициализация не удалась.
+\n\code{void SetConnectionIP(Engine::Network::Address ip)}
+\nПереопределяет IP адрес для подключения к кластеру (см. класс Client).
+\n\code{void SetConnectionPort(Engine::uint16 port)}
+\nПереопределяет порт для подключения к кластеру (см. класс Client).
+\n\code{void SetTaskExecutable(Engine::DataBlock * data)}
+\nЗадаёт пакет с ядром вычислений. Клиент продливает время существования блока данных на неопределённое время.
+\n\code{void SetTaskInput(Engine::DataBlock * data)}
+\nЗадаёт входные данные для вычислений. Клиент продливает время существования блока данных на неопределённое время.
+\n\code{void SetTaskInput(Engine::Reflection::Reflected & data)}
+\nЗадаёт входные данные для вычислений на основе структуры с рефлексией. Задача Main вычислителя должна иметь идентичные структуре data поля.
+\n\code{void Start(void)}
+\nПодключается к серверу и инициирует запуск вычислений. Вызывает исключения аналогично Client::Connect в случае сбоя подключения.
+В случае успешного подключения, дальнейшая конфигурация узлов и запуск задачи выполняются асинхронно.
+\n\code{Client * GetClusterClient(void)}
+\nВозвращает объект клиента кластера, используемый для подключения. 0, если подключение не установлено.
+Объект подключения принадлежит клиенту. Вызывающая сторона не должна его освобождать.
+\n\code{int GetHostCount(void)}
+\nВозвращает количество узлов, на которых были попытки начать вычисления.
+\n\code{void GetHostInfo(int range_min, int count, TaskHostDesc * desc)}
+\nВозвращает информацию о count узлах начиная с range_min в массив, на который указывает desc.
+Для получения информации обо всех узлах, используйте range_min == 0 и count == GetHostCount() - 1.
+\n\code{void GetProgressInfo(Engine::uint32 * tasks_complete, Engine::uint32 * tasks_total)}
+\nВозвращает общее состояние вычислений в переменные, на которые указывают аргументы.
+Не возвращает то или иное поле, если был передан нулевой указатель.
+Семантика величин идентична структуре TaskHostDesc, но является глобальной.
+\n\code{bool IsFinished(void)}
+\nВозвращает true тогда и только тогда, когда вычисления были завершены (успешно или не успешно).
+\n\code{void Interrupt(void)}
+\nИнициирует асинхронное прерывание запущенных вычислений.
+\n\code{void Wait(void)}
+\nБлокирует выполнение до завершения вычислений.
+\n\code{Engine::uint32 GetTaskResultStatus(void)}
+\nВозвращает код состояния вычислительного процесса.
+\n\code{void GetTaskResult(Engine::DataBlock ** data)}
+\nЗаписывает в указатель, на который указывает data, адрес блока с результатами вычислений.
+Записывает 0, если вычисления не завершились успешно.
+Вызывающая сторона получает блок в собственность и должна освободить его, когда он более не будет нужен.
+\n\code{void GetTaskResult(Engine::Reflection::Reflected & data)}
+\nИнтерпретирует результат вычислений как структуру с рефлексией и записывает его в data.

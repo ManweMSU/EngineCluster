@@ -1,0 +1,67 @@
+\hh{ClusterPackage}\n\tВсе вводимые объекты определены в пространстве имён Engine::Cluster.
+Данный модуль реализует работу с пакетами. Включён в модуль Engine Runtime: ECFP.
+\n\h{Константы}
+\n\code{constexpr widechar * PackageAssetWindows = L"windows"}
+\nСлово, обозначающее вариант для ОС Microsoft Windows.
+\n\code{constexpr widechar * PackageAssetMacOS = L"macosx"}
+\nСлово, обозначающее вариант для ОС Apple Mac OS.
+\n\code{constexpr widechar * PackageAssetX86 = L"x86"}
+\nСлово, обозначающее вариант для архитектуры процессора IA-32.
+\n\code{constexpr widechar * PackageAssetX64 = L"x64"}
+\nСлово, обозначающее вариант для архитектуры процессора IA-64.
+\n\code{constexpr widechar * PackageAssetARM = L"arm"}
+\nСлово, обозначающее вариант для архитектуры процессора ARM.
+\n\code{constexpr widechar * PackageAssetARM64 = L"arm64"}
+\nСлово, обозначающее вариант для архитектуры процессора ARM64.
+\n\code{constexpr widechar * PackageAssetSources = L"sources"}
+\nСлово, обозначающее вариант в исходных кодах.
+\n\h{Типы данных}
+\n\code{struct PackageAssetDesc}
+\nСтруктура, описывающая вариант программы в пакете. Имеет поля:
+\n\code{Engine::Array<Engine::ImmutableString> Words} - массив слов, связанных с вариантом.
+\n\code{Engine::ImmutableString RootFile} - файл-точка входа варианта.
+\n\code{Engine::handle Handle} - дескриптор варианта.
+\n
+\n\code{struct PackageFileDesc}
+\nСтруктура, описывающая файл в пакете. Имеет поля:
+\n\code{Engine::ImmutableString Path} - относительный путь к файлу.
+\n\code{Engine::Time DateCreated} - дата создания файла.
+\n\code{Engine::Time DateAltered} - дата последнего изменения файла.
+\n\code{Engine::Time DateAccessed} - дата последнего доступа к файлу.
+\n\code{Engine::handle Handle} - дескриптор файла.
+\n\h{Классы}
+\n\code{class Package : public Engine::Object}
+\nОписывает загруженный для чтения пакет. Имеет методы:
+\n\code{Package(Engine::Streaming::Stream * stream)}
+\nКонструктор. Загружает пакет из потока данных stream. Время жизни потока продлевается на время жизни пакета.
+Вызывает Engine::InvalidFormatException, если данные в потоке не удалось интерпретировать как пакет.
+\n\code{Engine::Array<PackageAssetDesc> * EnumerateAssets(void)}
+\nВозвращает массив описаний всех вариантов в данном пакете.
+Вызывающая сторона должна освободить массив, когда он более не будет нужен.
+\n\code{PackageAssetDesc * FindAsset(const Engine::ImmutableString & word_1 = L"", const Engine::ImmutableString & word_2 = L"")}
+\nВозвращает указатель на описание варианта, найденного по заданным словам. Возвращает 0, если такого варианта нет.
+Описание принадлежит объекту пакета. Вызывающая сторона не должна освобождать его.
+\n\code{Engine::Array<PackageFileDesc> * EnumerateFiles(Engine::handle asset)}
+\nВозвращает массив описаний всех файлов, принадлежащих варианту с указанным дескриптором.
+Вызывающая сторона должна освободить массив, когда он более не будет нужен.
+\n\code{Engine::Streaming::Stream * OpenFile(Engine::handle file)}
+\nДля файла с указанным дескриптором возвращает поток с его данными, допускающий произвольное чтение.
+Вызывающая сторона должна освободить поток, когда он более не будет нужен.
+Время жизни пакета продлевается на время жизни созданного потока.
+\n
+\n\code{class PackageBuilder : public Engine::Object}
+\nСлужит для создания нового пакета. Имеет методы:
+\n\code{PackageBuilder(Engine::Streaming::Stream * stream)}
+\nКонструктор. Начинает создание пакета в потоке данных stream. Время жизни потока продлевается на время жизни конструктора пакета.
+\n\code{Engine::handle CreateAsset(const Engine::ImmutableString & word_1 = L"", const Engine::ImmutableString & word_2 = L"")}
+\nСоздаёт в пакете новый вариант с заданными словами. Возвращает его дескриптор.
+\n\code{void SetAssetRootFile(Engine::handle asset, const Engine::ImmutableString & path)}
+\nЗадаёт путь к файлу-точке входа для варианта с указанным дескриптором.
+\n\code{void AddDirectory(Engine::handle asset_to, const Engine::ImmutableString & name)}
+\nДобавляет в вариант с указанным дескриптором каталог с именем name.
+\n\code{void AddFile(const Engine::ImmutableString & path, Engine::handle asset_to, const Engine::ImmutableString & name)}
+\nДобавляет в вариант с указанным дескриптором файл с именем name. Данные и даты для файла берутся из существующего файла path.
+\n\code{void AddFile(const Engine::DataBlock * data, Engine::Time date_created, Engine::Time date_altered, Engine::Time date_accessed, Engine::handle asset_to, const Engine::ImmutableString & name)}
+\nДобавляет в вариант с указанным дескриптором файл с именем name. Данные и даты для файла берутся из других аргументов вызова.
+\n\code{void Finalize(void)}
+\nЗавершает создание нового пакета.

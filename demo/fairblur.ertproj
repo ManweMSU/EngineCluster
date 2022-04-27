@@ -1,0 +1,27 @@
+﻿ApplicationIcon = "../artwork/icon_demo.eiwv"
+Languages = "en,ru"
+Subsystem = "gui"
+UseVersionDefines = true
+CompileList {
+	AAAAAA = "fairblur.cxx"
+	AAAAAB = "fairblur.uiml"
+	AAAAAC = "../client/ClusterTaskClient.cxx"
+	AAAAAD = "../client/ClusterClient.cxx"
+}
+Resources {
+	COM = "@com_en.ecst"
+	KRNL = "fbkrnl.eipf"
+	ru {
+		COM = "@com_ru.ecst"
+	}
+}
+VersionInformation {
+	ApplicationIdentifier = "ClusterFairBlur"
+	ApplicationName = "Cluster Fair Blur"
+	CompanyIdentifier = "EngineSoftware"
+	CompanyName = "Engine Software"
+	Copyright = "© Engine Software. 2023"
+	Description = "Engine Cluster Fair Blur demo."
+	InternalName = "fairblur"
+	Version = "1.0.0.1"
+}

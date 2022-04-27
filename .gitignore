@@ -1,0 +1,5 @@
+# Hidden files
+.*
+
+# Build pipeline files
+_*

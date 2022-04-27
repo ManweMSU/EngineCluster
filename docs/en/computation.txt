@@ -1,0 +1,26 @@
+\hh{Spreaded Computation Service}\n\t Spreaded computations are the main purpose of the cluster net.
+\n\h{Packages}\n\t The package is an archive with computer program within.
+The package stores several program variants, including machine versions for various platforms and source code, which are called assets.
+The asset is determined by a set of words. The words defined by now are
+'windows', 'macosx', 'x86', 'x64', 'arm', 'arm64', 'sources'. The packages are created and viewed by ClusterPackage API
+and 'ecfxpack' and 'ecfxview' command-line tools.
+\n\h{Computation Kernel}\n\t Computation kernel is an Engine Runtime 1.8 compatible dynamic library
+implementing the ClusterTaskInterface binary interface. The different versions of the kernel for different platforms are delivered using packages.
+\n\h{Computation Client}\n\t Computation client is a software which 'employs' the cluster for the computation.
+The client provides the cluster with the computation kernel and the input data. It acquires the computation output data in the end.
+The client developed with ClusterTaskClient API.
+The command-line tool 'ecfexec' provides a special-case client implementation for a special classes of data.
+\n\h{Task Submission}\n
+1. The client connects to the cluster net and makes a node rent request. It provides the computation kernel package.\n
+2. Each server makes a decision on the rent. The server declines if it is already involved into another spreaded Computation
+or if it is not selected by the user for spreaded computations.\n
+3. The server selects the kernel asset to execute. The first-priority asset is a native one for the OS and processor architecture of the server.
+The second priority is the source code asset. The server refuses if either there is no such assets in the package or if the compilation have failed.\n
+4. Each node participating creates an isolated process for compilation. This process links with the kernel dynamic library,
+creates a thread pool equal to the processor core count and calls the Init task if it is provided by the kernel.\n
+5. The client gets the node table participating in the compilation. It selects the primary node and invokes the Main task on it
+with the computation input data.\n
+6. During the computation the task is capable of creating new tasks and scheduling them for execution of an
+arbitrary node of the cluster. The tasks may be dynamically moved between the nodes for better performance.\n
+7. On the end the computation kernel declares the output data (from one of the tasks).
+The result is returned to the computation client. The task processes are stopped.

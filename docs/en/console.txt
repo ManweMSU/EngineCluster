@@ -1,0 +1,7 @@
+\hh{Spreaded Console Service}\n\t The spreaded console is a built-in service for delivering the information messages inside the cluster.
+\n\t Any cluster client is capable of submitting the messages (of writing into the console).
+This feature is provided via the ClusterClient and ClusterTaskInterface APIs.
+The command-line tool 'ecfconwr' implements the UI for manual message submission.
+\n\t The server broadcasts the incoming messages to all the clients implementing the console client service.
+\n\t The command-line tool 'ecfcon' implements the console client. It prints the messages into both the console and
+additionally specified text files.

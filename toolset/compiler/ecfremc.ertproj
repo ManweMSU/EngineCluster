@@ -1,0 +1,16 @@
+﻿UseVersionDefines = true
+CompileList {
+	AAAAAA = "ecfremc.cxx"
+	AAAAAB = "../../client/ClusterClient.cxx"
+	AAAAAC = "../../client/ClusterPackage.cxx"
+}
+VersionInformation {
+	ApplicationIdentifier = "ClusterFrameworkRemoteCompiler"
+	ApplicationName = "Engine Cluster Framework Remote Compiler"
+	CompanyIdentifier = "EngineSoftware"
+	CompanyName = "Engine Software"
+	Copyright = "© Engine Software. 2023"
+	Description = "Engine Cluster Framework remote compiler."
+	InternalName = "ecfremc"
+	Version = "1.0.0.1"
+}

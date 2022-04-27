@@ -1,0 +1,4 @@
+\hh{Remote Compilation Service}\n\t Remote compilation is a service provided by server for building
+software with another node's powers. It requires the fully configured Engine Runtime 1.3 and higher to operate.
+The client accesses the service via the command-line tool 'ecfremc'.
+The text output of the remote building pipeline is delivered with the spreaded console.

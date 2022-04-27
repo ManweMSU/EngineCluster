@@ -1,0 +1,144 @@
+\hh{ClusterClient}\n\tВсе вводимые объекты определены в пространстве имён Engine::Cluster.
+Данный модуль реализует клиента кластера. Включён в модули Engine Runtime: ECFC и ECFTC.
+\n\h{Константы}
+\n\code{constexpr uint16 ClusterServerDefaultPort = 10666}
+\nПорт кластера по умолчанию.
+\n\code{constexpr widechar * IdentifierServiceNode = L"engine.cluster.node"}
+\nИдентификатор службы сервера узла.
+\n\code{constexpr widechar * IdentifierServiceWorkClient = L"engine.cluster.employer"}
+\nИдентификатор службы клиента распределённых вычислений.
+\n\code{constexpr widechar * IdentifierServiceWorkHost = L"engine.cluster.worker"}
+\nИдентификатор службы изолированного процесса распределённых вычислений.
+\n\code{constexpr widechar * IdentifierServiceTextLogger = L"engine.cluster.logger"}
+\nИдентификатор службы вывода сообщений распределённой консоли.
+\n\h{Типы данных}
+\n\code{enum class ServiceClass}
+\nАналог идентификатора службы для базовых служб. Возможные значения:
+\n\code{ServiceClass::Unknown} - неизвестная служба.
+\n\code{ServiceClass::Node} - служба сервера узла.
+\n\code{ServiceClass::WorkClient} - служба клиента распределённых вычислений.
+\n\code{ServiceClass::WorkHost} - служба изолированного процесса распределённых вычислений.
+\n\code{ServiceClass::Logger} - служба вывода сообщений распределённой консоли.
+\n\code{typedef uint64 ObjectAddress}
+\nТип для хранения адреса участника кластерной сети.
+\n
+\n\code{struct EndpointDesc}
+\nСтруктура, описывающая участника кластерной сети. Имеет поля:
+\n\code{ObjectAddress Address} - адрес участника.
+\n\code{Engine::ImmutableString ServiceID} - идентификатор службы участника.
+\n\code{Engine::ImmutableString ServiceName} - имя службы участника.
+\n
+\n\code{struct NodeDesc}
+\nСтруктура, описывающая узел сети.
+\n\code{ObjectAddress Address} - адрес сервера узла.
+\n\code{Engine::ImmutableString NodeName} - имя узла.
+\n\code{bool Online} - указывает, является ли узел активным в данный момент.
+\n
+\n\code{struct NodeStatus}
+\nСтруктура, описывающая статус узела сети.
+\n\code{Engine::Power::BatteryStatus Battery} - состояние электропитания узла.
+\n\code{Engine::uint BatteryLevel} - число от 0 до 100, уровень заряда аккумулятора узла, если таковой есть.
+\n\code{Engine::uint ProgressComplete} - число завершённых узлом задач в рамках распределённого вычисления.
+\n\code{Engine::uint ProgressTotal} - общее число задач на узле в рамках распределённого вычисления.
+Значение 0 означает, что узел не выполняет вычисления. Значение 0xFFFFFFFF означает, что уровень прогресса вычислений не определён.
+\n\h{Функции}
+\n\code{Engine::Network::Address MakeNetworkAddress(const Engine::ImmutableString & from)}
+\nПереводит текстовое представление сетевого IP адреса в цифровое представление.
+\nВызывает исключения:
+\n Engine::InvalidArgumentException, если строка имеет неверный синтаксис.
+\n Engine::OutOfMemoryException, если для выполнения преобразования не хватило памяти.
+\n\h{Интерфейсы}
+\n\code{class IMessageCallback}
+\nПользователь реализует этот интерфейс для обработки входящих пакетов.
+Важно: из методов этого интерфейса нельзя вызывать методы класса Client, опасность блокировки.
+Содержит методы:
+\n\code{virtual bool RespondsToMessage(Engine::uint32 verb)}
+\nДолжен возвращать true тогда и только тогда, когда данный клиент может обрабатывать пакеты с кодом verb.
+\n\code{virtual void HandleMessage(ObjectAddress from, Engine::uint32 verb, const Engine::DataBlock * data)}
+\nВызывается для обработки входящего пакета. Вызывается только если RespondsToMessage(verb) == true для данного пакета.
+\n\code{from} - адрес отправителя.
+\n\code{verb} - код пакета.
+\n\code{data} - данные внутри пакета. Может быть 0, если пакет не содержит данных.
+\n\code{virtual void CallbackExpired(void)}
+\nВызывается, если время действия данного обработчика пакетов истекло (см. RegisterCallback и RegisterOneTimeCallback).
+\n
+\n\code{class IEventCallback}
+\nПользователь реализует этот интерфейс для обработки событий, связанных с подключением.
+Важно: из методов этого интерфейса нельзя вызывать методы класса Client, опасность блокировки. Содержит метод:
+\n\code{virtual void ConnectionLost(void)}
+\nВызывается, если соединение с обслуживающим сервером кластера было разорвано.
+\n\h{Классы}
+\n\code{class Client : public Engine::Object}
+\nРеализует клиента кластера. Имеет методы:
+\n\code{Client(void)}
+\nКонструктор. Создаёт не инициализированный и не подключённый к чему-либо клиент.
+\n\code{void SetConnectionIP(Engine::Network::Address ip)}
+\nПереопределяет IP адрес для подключения к кластеру. Значение по умолчанию: 127.0.0.1.
+Не имеет эффекта, если клиент уже инициировал подключение.
+\n\code{void SetConnectionPort(uint16 port)}
+\nПереопределяет порт для подключения к кластеру. Значение по умолчанию: 10666.
+Не имеет эффекта, если клиент уже инициировал подключение.
+\n\code{void SetConnectionServiceID(const Engine::ImmutableString & id)}
+\nОпределяет идентификатор службы клиента. Обязательно для настройки. Не имеет эффекта, если клиент уже инициировал подключение.
+\n\code{void SetConnectionServiceName(const Engine::ImmutableString & id)}
+\nОпределяет читаемое имя службы клиента. Обязательно для настройки. Не имеет эффекта, если клиент уже инициировал подключение.
+\n\code{void SetConnectionService(ServiceClass service)}
+\nОпределяет службу клиента из перечня стандартных. Переопределяет эффект от SetConnectionServiceID и SetConnectionServiceName.
+Не имеет эффекта, если клиент уже инициировал подключение.
+\n\code{void Connect(void)}
+\nИнициирует подключение к серверу. В случае успешного подключения, клиент обрабатывает входящие потоки асинхронно.
+Может вызвать исключения:
+\n Engine::InvalidArgumentException, если не указаны или указанны не корректно имя и идентификатор службы.
+\n Engine::FileAccessException при сбое процедуры подключения к серверу.
+\n Engine::Exception при иных сбоях.
+\n\code{void Disconnect(void)}
+\nАсинхронно разрывает уже установленное соединение.
+\n\code{void Wait(void)}
+\nБлокирует выполнение до полного разрыва соединения с сервером.
+\n\code{void SetEventCallback(IEventCallback * callback)}
+\nУстанавливает интерфейс для получения оповещений о разрыве соединения.
+\n\code{IEventCallback * GetEventCallback(void)}
+\nВозвращает установленный в данный момент интерфейс для получения оповещений о разрыве соединения.
+\n\code{ObjectAddress GetSelfAddress(void) const}
+\nВозвращает выделенный сервером адрес данного клиента, 0 если соединение не установлено.
+\n\code{ObjectAddress GetNodeAddress(void) const}
+\nВозвращает адрес обслуживающего данного клиента сервера, 0 если соединение не установлено.
+\n\code{Engine::Array<NodeDesc> * EnumerateNodes(bool online_only = true)}
+\nВозвращает массив с узлами в сети. Если online_only == true, то возвращает только активные узлы.
+Вызывающая сторона должна освободить массив, когда он более не будет нужен.
+Если соединение не установлено, то вызывает Engine::InvalidStateException.
+\n\code{NodeStatus QueryNodeStatus(ObjectAddress node)}
+\nВозвращает статус узла с указанным адресом.
+Если соединение не установлено, то вызывает Engine::InvalidStateException.
+Если node не является адресом сервера, то вызывает Engine::Exception.
+\n\code{Engine::Array<EndpointDesc> * EnumerateEndpoints(void)}
+\n\code{Engine::Array<EndpointDesc> * EnumerateEndpoints(const Engine::ImmutableString & service_id)}
+\n\code{Engine::Array<EndpointDesc> * EnumerateEndpoints(ObjectAddress node_on)}
+\n\code{Engine::Array<EndpointDesc> * EnumerateEndpoints(ObjectAddress node_on, const Engine::ImmutableString & service_id)}
+\nВозвращает массив с клиентами сети. В зависимости от выбранной перегрузки, будет выполнен фильтр
+клиентов по адресу сервера узла или по идентификатору их службы.
+Вызывающая сторона должна освободить массив, когда он более не будет нужен.
+Если соединение не установлено, то вызывает Engine::InvalidStateException.
+Вызывает Engine::Exception при иных ошибках.
+\n\code{Engine::Streaming::ITextWriter * CreateLoggingService(void)}
+\nСоздаёт устройство для записи в распределённую консоль.
+Если соединение не установлено, то вызывает Engine::InvalidStateException.
+Вызывающая сторона должна освободить устройство, когда оно более не нужно.
+Устройство продлевает время жизни создавшего его клиента на время своего собственного существования.
+
+\n\code{void SendMessage(Engine::uint32 verb, ObjectAddress to, const Engine::DataBlock * payload)}
+\nОтправляет пакет с кодом пакета verb получателю to с данными payload,
+payload может быть 0 для отправки пакета без данных.
+Если соединение не установлено, то вызывает Engine::InvalidStateException.
+\n\code{void RegisterCallback(IMessageCallback * callback)}
+\n\code{void RegisterCallback(IMessageCallback * callback, uint32 expiration_time)}
+\n\code{void RegisterCallback(IMessageCallback * callback, uint32 expiration_time, bool run_once)}
+\nРегистрирует обработчик входящих пакетов callback на стороне клиента.
+Если указано expiration_time, не равное 0, то обработчик автоматически дерегистрируется по истечении указанного времени (в миллисекундах),
+при этом вызывается событие CallbackExpired. Если run_once == true, то обработчик автоматически дерегистрируется
+после обработки первого пакета.
+\n\code{void RegisterOneTimeCallback(IMessageCallback * callback)}
+\n\code{void RegisterOneTimeCallback(IMessageCallback * callback, uint32 expiration_time)}
+\nАналогичен RegisterCallback с run_once == true.
+\n\code{void UnregisterCallback(IMessageCallback * callback)}
+\nДерегистрирует ранее установленный обработчик пакетов callback.

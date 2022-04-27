@@ -1,0 +1,96 @@
+﻿ApplicationIcon = "artwork\\icon_main.eiwv"
+Languages = "en,ru"
+NoDockIcon = true
+OutputName = "ecfsrvr"
+Subsystem = "gui"
+UseVersionDefines = true
+Attachments {
+	AAAAAA {
+		From = "artwork\\ani\\ani.ecsa"
+		To = "ecfsrvr.ecsa"
+	}
+	AAAAAB {
+		From = "docs\\docs.ecsa"
+		To = "ecfsrvr.ehlp"
+	}
+}
+CompileList {
+	AAAAAA = "client\\ClusterPackage.cxx"
+	AAAAAB = "docview.cxx"
+	AAAAAC = "ecfsrvr.cxx"
+	AAAAAD = "ecfsrvr.uiml"
+	AAAAAE = "srvrnet.cxx"
+	AAAAAF = "srvrsrvc.cxx"
+}
+EngineStore {
+	PermanentFiles = "*ecfsrvr.ecs"
+}
+"-macosx-arm64" {
+	Attachments {
+		CGAAAA {
+			From = "hostapps/comhost/_build/macosx_arm64_release/ecfcomhs"
+			To = "ecfcomhs"
+		}
+		CGAAAB {
+			From = "hostapps/taskhost/_build/macosx_arm64_release/ecfhost"
+			To = "ecfhost"
+		}
+	}
+}
+"-macosx-x64" {
+	Attachments {
+		CEAAAA {
+			From = "hostapps/comhost/_build/macosx_x64_release/ecfcomhs"
+			To = "ecfcomhs"
+		}
+		CEAAAB {
+			From = "hostapps/taskhost/_build/macosx_x64_release/ecfhost"
+			To = "ecfhost"
+		}
+	}
+}
+Resources {
+	COM = "@com_en.ecst"
+	TRAY = "artwork\\icon_tray.eiwv"
+	ru {
+		COM = "@com_ru.ecst"
+	}
+}
+VersionInformation {
+	ApplicationIdentifier = "ClusterFrameworkServer"
+	ApplicationName = "Engine Cluster Framework Server"
+	CompanyIdentifier = "EngineSoftware"
+	CompanyName = "Engine Software"
+	Copyright = "© Engine Software. 2023"
+	Description = "Engine Cluster Framework server application."
+	InternalName = "ecfsrvr"
+	Version = "1.0.0.1"
+}
+"-windows-arm" {
+}
+"-windows-arm64" {
+}
+"-windows-x64" {
+	Attachments {
+		BEAAAA {
+			From = "hostapps\\comhost\\_build\\windows_x64_release\\ecfcomhs.exe"
+			To = "ecfcomhs.exe"
+		}
+		BEAAAB {
+			From = "hostapps\\taskhost\\_build\\windows_x64_release\\ecfhost.exe"
+			To = "ecfhost.exe"
+		}
+	}
+}
+"-windows-x86" {
+	Attachments {
+		BDAAAA {
+			From = "hostapps\\comhost\\_build\\windows_x86_release\\ecfcomhs.exe"
+			To = "ecfcomhs.exe"
+		}
+		BDAAAB {
+			From = "hostapps\\taskhost\\_build\\windows_x86_release\\ecfhost.exe"
+			To = "ecfhost.exe"
+		}
+	}
+}

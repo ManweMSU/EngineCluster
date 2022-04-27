@@ -1,0 +1,16 @@
+﻿UseVersionDefines = true
+CompileList {
+	AAAAAA = "..\\..\\client\\ClusterClient.cxx"
+	AAAAAB = "..\\..\\client\\ClusterTaskClient.cxx"
+	AAAAAC = "ecfexec.cxx"
+}
+VersionInformation {
+	ApplicationIdentifier = "ClusterFrameworkExecutionClient"
+	ApplicationName = "Engine Cluster Framework Execution Client"
+	CompanyIdentifier = "EngineSoftware"
+	CompanyName = "Engine Software"
+	Copyright = "© Engine Software. 2023"
+	Description = "Engine Cluster Framework task execution console client."
+	InternalName = "ecfexec"
+	Version = "1.0.0.1"
+}

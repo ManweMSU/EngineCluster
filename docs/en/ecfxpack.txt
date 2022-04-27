@@ -1,0 +1,16 @@
+\hh{The Package Management}\n\h{ecfxpack}\n\t Creates a package with several assets within.
+The suggested extension for the package files is '.eipf'. Syntax:
+\n\code{ecfxpack <FILENAME> [-S] [-p <PROJECT> [-x | -s]]}
+\n\code{ecfxpack <FILENAME> [-S] [-d <DIRECTORY> <WORDS> <ROOT>]}
+\n S - silent mode (no output to the console).
+\n p - makes a package based on the Engine Runtime project file.
+\n x - tells to include the binary versions of the program from the '_build' directory.
+\n s - tells to include the source code version of the program.
+\n d - makes a package based on the contents of a directory. Any number of such parameters may be specified. Is not compatible with '-p'.
+For each directory a set of words must be specified to describe the asset. The words are separated by the '-' character.
+Also the 'root' file must be specified. The root file is used as the entry point/project file of the program.
+\n\h{ecfxview}\n\t Prints the contents of the package. Syntax:
+\n\code{ecfxview <FILENAME> [-S] [-x <WORDS> <DIRECTORY>] [-o]}
+\n S - silent mode (no output to the console).
+\n x - extracts the variant selected into the directory specified.
+\n o - allows the extractor to overwrite the existing files.

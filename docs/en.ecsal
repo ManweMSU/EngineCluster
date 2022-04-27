@@ -1,0 +1,130 @@
+﻿ECSAL
+ExcludeMetadata = true
+"000000001" {
+	AccessTimeClass = 3
+	AddMetadata = true
+	AlterTimeClass = 3
+	CreationTimeClass = 3
+	Name = "main"
+	Source = "<ListPath>\\en\\main.txt"
+}
+"000000002" {
+	AccessTimeClass = 3
+	AddMetadata = true
+	AlterTimeClass = 3
+	CreationTimeClass = 3
+	Name = "index"
+	Source = "<ListPath>\\en\\index.txt"
+}
+"000000003" {
+	AccessTimeClass = 3
+	AddMetadata = true
+	AlterTimeClass = 3
+	CreationTimeClass = 3
+	Name = "server"
+	Source = "<ListPath>\\en\\server.txt"
+}
+"000000004" {
+	AccessTimeClass = 3
+	AddMetadata = true
+	AlterTimeClass = 3
+	CreationTimeClass = 3
+	Name = "server_panel"
+	Source = "<ListPath>\\en\\server_panel.txt"
+}
+"000000005" {
+	AccessTimeClass = 3
+	AddMetadata = true
+	AlterTimeClass = 3
+	CreationTimeClass = 3
+	Name = "compilation"
+	Source = "<ListPath>\\en\\compilation.txt"
+}
+"000000006" {
+	AccessTimeClass = 3
+	AddMetadata = true
+	AlterTimeClass = 3
+	CreationTimeClass = 3
+	Name = "computation"
+	Source = "<ListPath>\\en\\computation.txt"
+}
+"000000007" {
+	AccessTimeClass = 3
+	AddMetadata = true
+	AlterTimeClass = 3
+	CreationTimeClass = 3
+	Name = "console"
+	Source = "<ListPath>\\en\\console.txt"
+}
+"000000008" {
+	AccessTimeClass = 3
+	AddMetadata = true
+	AlterTimeClass = 3
+	CreationTimeClass = 3
+	Name = "ecfcon"
+	Source = "<ListPath>\\en\\ecfcon.txt"
+}
+"000000009" {
+	AccessTimeClass = 3
+	AddMetadata = true
+	AlterTimeClass = 3
+	CreationTimeClass = 3
+	Name = "ecfexec"
+	Source = "<ListPath>\\en\\ecfexec.txt"
+}
+"000000010" {
+	AccessTimeClass = 3
+	AddMetadata = true
+	AlterTimeClass = 3
+	CreationTimeClass = 3
+	Name = "ecfremc"
+	Source = "<ListPath>\\en\\ecfremc.txt"
+}
+"000000011" {
+	AccessTimeClass = 3
+	AddMetadata = true
+	AlterTimeClass = 3
+	CreationTimeClass = 3
+	Name = "ecfstat"
+	Source = "<ListPath>\\en\\ecfstat.txt"
+}
+"000000012" {
+	AccessTimeClass = 3
+	AddMetadata = true
+	AlterTimeClass = 3
+	CreationTimeClass = 3
+	Name = "ecfxpack"
+	Source = "<ListPath>\\en\\ecfxpack.txt"
+}
+"000000013" {
+	AccessTimeClass = 3
+	AddMetadata = true
+	AlterTimeClass = 3
+	CreationTimeClass = 3
+	Name = "src_client"
+	Source = "<ListPath>\\en\\src_client.txt"
+}
+"000000014" {
+	AccessTimeClass = 3
+	AddMetadata = true
+	AlterTimeClass = 3
+	CreationTimeClass = 3
+	Name = "src_package"
+	Source = "<ListPath>\\en\\src_package.txt"
+}
+"000000015" {
+	AccessTimeClass = 3
+	AddMetadata = true
+	AlterTimeClass = 3
+	CreationTimeClass = 3
+	Name = "src_task_client"
+	Source = "<ListPath>\\en\\src_task_client.txt"
+}
+"000000016" {
+	AccessTimeClass = 3
+	AddMetadata = true
+	AlterTimeClass = 3
+	CreationTimeClass = 3
+	Name = "src_task_interface"
+	Source = "<ListPath>\\en\\src_task_interface.txt"
+}

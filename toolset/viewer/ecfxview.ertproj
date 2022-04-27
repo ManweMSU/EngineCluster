@@ -1,0 +1,15 @@
+﻿UseVersionDefines = true
+CompileList {
+	AAAAAA = "ecfxview.cxx"
+	AAAAAB = "../../client/ClusterPackage.cxx"
+}
+VersionInformation {
+	ApplicationIdentifier = "ClusterFrameworkViewer"
+	ApplicationName = "Engine Cluster Framework Package Viewer"
+	CompanyIdentifier = "EngineSoftware"
+	CompanyName = "Engine Software"
+	Copyright = "© Engine Software. 2023"
+	Description = "Engine Cluster Framework package viewer."
+	InternalName = "ecfxview"
+	Version = "1.0.0.1"
+}
