@@ -1,0 +1,86 @@
+HANDSHAKE-AUTHORIZATION PACKET
+'ECLFAUTH' OBJECT_TYPE CUSTOM_SERVICE_ID CUSTOM_SERVICE_NAME NODE_GUID
+\--------/ \---------/ \---------------/ \-----------------/ \-------/
+  8 bytes    4 bytes        YY bytes           XXX bytes      16 bytes if type is node
+
+OBJECT_TYPE:
+MASKS:
+  FF00 0000 - network object type
+  00FF FFFF - network object endpoint subtype
+TYPE VALUES:
+  0100 0000 - network object type node server
+  0200 0000 - network object type endpoint
+  0000 0001 - network endpoint subtype job client
+  0000 0002 - network endpoint subtype job host/worker
+  0000 0003 - network endpoint subtype text logger
+  008X XXYY - network endpoint subtype custom service
+
+RESPONCE
+'ECLFRESP' OBJECT_ID LOCAL_SERVER_ID
+\--------/ \-------/ \-------------/
+  8 bytes   8 bytes      8 bytes
+
+OBJECT_ID:
+MASKS:
+  FF00 0000 0000 0000 - network object type
+  00FF FFFF 0000 0000 - network service ID
+  0000 0000 FFFF 0000 - network node ID
+  0000 0000 0000 FFFF - network instance ID
+NETWORK OBJECT TYPE:
+  00 - handshake failed
+  01 - node server
+  02 - endpoint
+NETWORK OBJECT SERVICE ID
+  000000 - node server
+  000001 - job client
+  000002 - job host/worker
+  000003 - text logger
+  XXXXXX - custom service, XXXXXX > 3
+NETWORK NODE ID
+  000000 - server node is not incorporated
+  XXXXXX - cluster network node ID, XXXXXX > 0
+NETWORK INSTANCE ID
+  000000 - node-unique service (node server or a job client/host)
+  XXXXXX - cluster network object instance ID, unique to a node, XXXXXX > 0 
+
+REGULAR PACKET
+PACKET_VERB PAYLOAD_SIZE DESTINATION_ADDRESS SOURCE_ADDRESS PAYLOAD
+\---------/ \----------/ \-----------------/ \------------/
+  4 bytes      4 bytes         8 bytes           8 bytes
+
+VERBS
+COMMON
+  0000 0001 - ping
+  0000 0002 - ping responce
+SERVER TO SERVER ONLY
+  0000 0100 - server initiate net unification
+  0000 0101 - server lock for net alternation
+  0000 0102 - server lock for net alternation status responce
+  0000 0103 - server unlock for net alternation
+  0000 0104 - server update node addresses
+  0000 0105 - server set node list
+  0000 0106 - server add node list
+  0000 0107 - server update node's routing line
+  0000 0108 - server register service ID
+TO SERVER
+  0000 0201 - enumerate nodes
+  0000 0202 - node enumeration responce
+  0000 0203 - enumerate service instances
+  0000 0204 - service enumeration responce
+  0000 0205 - node status request
+  0000 0206 - node status responce
+  0000 0207 - node launch host
+  0000 0208 - launch host responce
+  0000 0209 - kill current host
+TO SERVER AND TEXT LOGGER
+  0000 0301 - log text notification
+TO HOST
+  0000 0401 - schedule task
+  0000 0402 - report queue status
+  0000 0403 - queue status responce
+  0000 0404 - terminate
+TO JOB CLIENT
+  0000 0501 - work finished responce and status
+
+USER SPACE VERBS
+  8XXXXXXXX
