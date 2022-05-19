@@ -1,0 +1,28 @@
+﻿ApplicationIcon = "artwork\\icon_main.eiwv"
+Languages = "en,ru"
+NoDockIcon = true
+OutputName = "ecfsrvr"
+Subsystem = "console"
+UseVersionDefines = true
+CompileList {
+	AAAAAA = "ecfsrvr.cxx"
+	AAAAAB = "ecfsrvr.uiml"
+	AAAAAC = "srvrnet.cxx"
+}
+Resources {
+	COM = "@com_en.ecst"
+	TRAY = "artwork\\icon_tray.eiwv"
+	ru {
+		COM = "@com_ru.ecst"
+	}
+}
+VersionInformation {
+	ApplicationIdentifier = "ClusterFrameworkServer"
+	ApplicationName = "Engine Cluster Framework Server"
+	CompanyIdentifier = "EngineSoftware"
+	CompanyName = "Engine Software"
+	Copyright = "© Engine Software. 2022"
+	Description = "Engine Cluster Framework server application."
+	InternalName = "ecfsrvr"
+	Version = "1.0.0.1"
+}

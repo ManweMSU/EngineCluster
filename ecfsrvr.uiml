@@ -1,0 +1,212 @@
+﻿## resource "UI"
+
+# Waffle
+
+resource texture IconShutdown { & "artwork/button_shutdown.eiwv" }
+resource texture IconHelp { & "artwork/button_help.eiwv" }
+resource texture IconGreenlight { & "artwork/icon_greenlight.eiwv" }
+resource texture IconGreenlightI { & "artwork/icon_greenlight.eiwv" BlindGrayscale }
+resource texture IconCreateNet { & "artwork/button_create_net.eiwv" }
+resource texture IconJoinNet { & "artwork/button_join_net.eiwv" }
+resource texture IconForgetNet { & "artwork/button_forget_net.eiwv" }
+resource texture IconForgetNetI { & "artwork/button_forget_net.eiwv" BlindGrayscale }
+resource texture IconAutoconnectNet { & "artwork/button_autoconnect_net.eiwv" }
+resource texture IconAutoconnectNetI { & "artwork/button_autoconnect_net.eiwv" BlindGrayscale }
+resource texture IconConnectNet { & "artwork/button_connect_net.eiwv" }
+resource texture IconConnectNetI { & "artwork/button_connect_net.eiwv" BlindGrayscale }
+resource texture IconDisconnectNet { & "artwork/button_disconnect_net.eiwv" }
+resource texture IconDisconnectNetI { & "artwork/button_disconnect_net.eiwv" BlindGrayscale }
+
+resource string TextFailedToConnect [ _ ru ] {
+	"The server failed to launch network services required to connect to the net."
+	"Серверу не удалось запустить сетевые службы, необходимые для подключения к сети."
+}
+resource string TextNetForgetConfirmation [ _ ru ] {
+	"Do you shurely want to forget this net unilaterally?"
+	"Вы действительно желаете забыть эту сеть в одностороннем порядке?"
+}
+resource string TextNetCannotForgetActiveNet [ _ ru ] {
+	"The active net cannot be forgotten. Disconnect in order to forget it."
+	"Невозможно забыть активную сеть. Отключитесь от этой сети чтобы забыть её."
+}
+resource string TextSelectNodeName [ _ ru ] {
+	"Please, select node name and UUID"
+	"Пожалуйста, выберите имя и UUID узла"
+}
+resource string TextUniqueNodeName [ _ ru ] {
+	"Unique node name"
+	"Уникальное имя узла"
+}
+resource string TextUniqueNetName [ _ ru ] {
+	"Unique net name"
+	"Уникальное имя сети"
+}
+resource string TextName [ _ ru ] { "Name:" "Имя:" }
+resource string TextUUID [ _ ru ] { "UUID:" "UUID:" }
+resource string TextPort [ _ ru ] { "Port:" "Порт:" }
+resource string TextCancel [ _ ru ] { "Cancel" "Отмена" }
+resource string TextSelect [ _ ru ] { "Select" "Выбрать" }
+resource string TextCreate [ _ ru ] { "Create" "Создать" }
+resource string TextHelp [ _ ru ] { "Help" "Вызов справки" }
+resource string TextAbout [ _ ru ] { "About" "О программе" }
+resource string TextNets [ _ ru ] { "Nets" "Сети" }
+resource string TextNodes [ _ ru ] { "Nodes" "Узлы" }
+resource string TextNameNS [ _ ru ] { "Name" "Имя" }
+resource string TextUUIDNS [ _ ru ] { "UUID" "UUID" }
+resource string TextA [ _ ru ] { "A" "A" }
+resource string TextNewNetCreation [ _ ru ] { "Creating a new net" "Создание новой сети" }
+
+dialog SelfSetup {
+	DialogFrame {
+		position { 0, 0, z 420, z 147 }
+		Captioned Title "Engine Cluster Framework"
+		CloseButton MinimizeButton
+		ControlGroup {
+			style WaffleFrame
+			position { z 5, z 5, w 1 z -5, z 109 }
+			Static { position { z 5, z 5, w 1 z -5, z 33 } Text TextSelectNodeName }
+			Static { position { z 5, z 38, z 65, z 66 } Text TextName }
+			Edit { position { z 65, z 38, w 1 z -5, z 66 } ID 101 Placeholder TextUniqueNodeName }
+			Static { position { z 5, z 71, z 65, z 99 } Text TextUUID }
+			Edit { position { z 65, z 71, w 1 z -5, z 99 } ID 102 }
+		}
+		Button { position { z 5, z 114, z 105, z 142 } Text TextCancel ID 2 }
+		Button { position { w 1 z -105, z 114, w 1 z -5, z 142 } Text TextSelect ID 1 }
+	}
+}
+dialog NewNetSetup {
+	DialogFrame {
+		position { 0, 0, z 420, z 147 }
+		Captioned Title TextNewNetCreation CloseButton
+		ControlGroup {
+			style WaffleFrame
+			position { z 5, z 5, w 1 z -5, z 109 }
+			Static { position { z 5, z 5, z 65, z 33 } Text TextName }
+			Edit { position { z 65, z 5, w 1 z -5, z 33 } ID 101 Placeholder TextUniqueNetName }
+			Static { position { z 5, z 38, z 65, z 66 } Text TextUUID }
+			Edit { position { z 65, z 38, w 1 z -5, z 66 } ID 102 }
+			Static { position { z 5, z 71, z 65, z 99 } Text TextPort }
+			Edit { position { z 65, z 71, w 1 z -5, z 99 } ID 103 CharactersEnabled "0123456789" }
+		}
+		Button { position { z 5, z 114, z 105, z 142 } Text TextCancel ID 2 }
+		Button { position { w 1 z -105, z 114, w 1 z -5, z 142 } Text TextCreate ID 1 }
+	}
+}
+
+dialog Main {
+	DialogFrame {
+		position { 0, 0, z 600, z 350 }
+		Captioned Title "Engine Cluster Framework" Sizeble
+		CloseButton MinimizeButton MaximizeButton
+		MinimalWidth z 400 MinimalHeight z 250
+		BookmarkView {
+			position { z 5, z 5, w 1 z -5, w 1 z -5 } ID 10
+			Bookmark {
+				position { 0, 0, z 120, 0 }
+				Text TextNets ID 11
+				ControlGroup {
+					position parent
+					ListView {
+						position { z 5, z 5, w 1 z -38, w 1 z -5 }
+						ID 101
+						ListViewColumn {
+							position { 0, 0, z 28, 0 } MinimalWidth z 28
+							ViewElementNormal { texture {
+								position parent
+								texture @ Greenlight no_stretch
+							} }
+						}
+						ListViewColumn {
+							position { 0, 0, z 220, 0 } MinimalWidth z 100
+							Text TextNameNS
+							ViewElementNormal { text {
+								position { z 5, 0, w 1, w 1 }
+								text @ Name font @ Font color { 0, 0, 0 } vcenter
+							} }
+						}
+						ListViewColumn {
+							position { 0, 0, z 28, 0 } MinimalWidth z 28
+							Text TextA
+							ViewElementNormal { text {
+								position { z 5, 0, w 1, w 1 }
+								text @ Autoconnect font @ Font color { 0, 0, 0 } vcenter
+							} }
+						}
+						ListViewColumn {
+							position { 0, 0, z 320, 0 } MinimalWidth z 100
+							Text TextUUIDNS
+							ViewElementNormal { text {
+								position { z 5, 0, w 1, w 1 }
+								text @ UUID font @ Font color { 0, 0, 0 } vcenter
+							} }
+						}
+					}
+					Button {
+						position { w 1 z -33, z 5, w 1 z -5, z 33 }
+						ImageNormal IconCreateNet ID 102
+					}
+					Button {
+						position { w 1 z -33, z 38, w 1 z -5, z 66 }
+						ImageNormal IconJoinNet ID 103
+					}
+					Button {
+						position { w 1 z -33, z 71, w 1 z -5, z 99 }
+						ImageNormal IconForgetNet ImageGrayed IconForgetNetI ID 104
+					}
+					Button {
+						position { w 1 z -33, z 104, w 1 z -5, z 132 }
+						ImageNormal IconAutoconnectNet ImageGrayed IconAutoconnectNetI ID 105
+					}
+					Button {
+						position { w 1 z -33, z 137, w 1 z -5, z 165 }
+						ImageNormal IconConnectNet ImageGrayed IconConnectNetI ID 106
+					}
+					Button {
+						position { w 1 z -33, z 170, w 1 z -5, z 198 }
+						ImageNormal IconDisconnectNet ImageGrayed IconDisconnectNetI ID 107
+					}
+				}
+			}
+			Bookmark {
+				position { 0, 0, z 120, 0 }
+				Text TextNodes ID 12
+				ControlGroup {
+					position parent
+
+					// TODO: IMPLEMENT
+
+					Button {
+						position { w 1 z -33, z 5, w 1 z -5, z 33 }
+						ImageNormal IconConnectNet ImageGrayed IconConnectNetI ID 202
+					}
+					Button {
+						position { w 1 z -33, z 38, w 1 z -5, z 66 }
+						ImageNormal IconDisconnectNet ImageGrayed IconDisconnectNetI ID 203
+					}
+
+					// TODO: IMPLEMENT
+				}
+			}
+		}
+		ControlGroup {
+			position { w 1 z -80, 0, w 1, z 33 }
+			ToolButton {
+				position { w 1 z -78, z 2, w 1 z -38, z 30 }
+				ToolButtonPart {
+					position { 0, 0, z 28, z 28 }
+					ImageNormal IconHelp ID 1
+				}
+				ToolButtonPart {
+					style ToolButtonDropDown
+					position { z 28, 0, w 1, w 1 }
+					DropDownMenu { PopupMenu {
+						MenuItem { Text TextHelp RightText "F1" ID 1 }
+						MenuSeparator {}
+						MenuItem { Text TextAbout ID 3 }
+					} }
+				}
+			}
+			ToolButton { position { w 1 z -33, z 2, w 1 z -5, z 30 } ToolButtonPart { position parent ImageNormal IconShutdown ID 2 } }
+		}
+	}
+}

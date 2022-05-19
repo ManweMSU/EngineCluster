@@ -37,11 +37,11 @@ NETWORK OBJECT SERVICE ID
   000003 - text logger
   XXXXXX - custom service, XXXXXX > 3
 NETWORK NODE ID
-  000000 - server node is not incorporated
-  XXXXXX - cluster network node ID, XXXXXX > 0
+  0000 - server node is not incorporated
+  XXXX - cluster network node ID, XXXX > 0
 NETWORK INSTANCE ID
-  000000 - node-unique service (node server or a job client/host)
-  XXXXXX - cluster network object instance ID, unique to a node, XXXXXX > 0 
+  0000 - node-unique service (node server or a job client/host)
+  XXXX - cluster network object instance ID, unique to a node, XXXX > 0 
 
 REGULAR PACKET
 PACKET_VERB PAYLOAD_SIZE DESTINATION_ADDRESS SOURCE_ADDRESS PAYLOAD
@@ -51,36 +51,44 @@ PACKET_VERB PAYLOAD_SIZE DESTINATION_ADDRESS SOURCE_ADDRESS PAYLOAD
 VERBS
 COMMON
   0000 0001 - ping
-  0000 0002 - ping responce
+  0001 0001 - ping responce
 SERVER TO SERVER ONLY
-  0000 0100 - server initiate net unification
-  0000 0101 - server lock for net alternation
-  0000 0102 - server lock for net alternation status responce
-  0000 0103 - server unlock for net alternation
-  0000 0104 - server update node addresses
-  0000 0105 - server set node list
-  0000 0106 - server add node list
-  0000 0107 - server update node's routing line
-  0000 0108 - server register service ID
+  0000 0101 - server net node join
+  0001 0101 - server net node join responce
+  0000 0102 - server net node connect
+  0001 0102 - server net node connect responce
+  0000 0103 - server net update node list
 TO SERVER
   0000 0201 - enumerate nodes
-  0000 0202 - node enumeration responce
-  0000 0203 - enumerate service instances
-  0000 0204 - service enumeration responce
-  0000 0205 - node status request
-  0000 0206 - node status responce
-  0000 0207 - node launch host
-  0000 0208 - launch host responce
-  0000 0209 - kill current host
+  0001 0201 - node enumeration responce
+  0000 0202 - enumerate service instances
+  0001 0202 - service enumeration responce
+  0000 0203 - node status request
+  0001 0203 - node status responce
+  0000 0204 - node launch host
+  0001 0204 - launch host responce
+  0000 0205 - kill current host
 TO SERVER AND TEXT LOGGER
   0000 0301 - log text notification
 TO HOST
   0000 0401 - schedule task
   0000 0402 - report queue status
-  0000 0403 - queue status responce
-  0000 0404 - terminate
+  0001 0402 - queue status responce
+  0000 0403 - terminate
 TO JOB CLIENT
   0000 0501 - work finished responce and status
 
 USER SPACE VERBS
-  8XXXXXXXX
+  8XXX XXXX
+
+NET JOIN SCHEME
+  new node:  connects
+             0000 0101 to one node with its uuid and name
+  one node:  0001 0101 to new node with net guid, name and node table
+             0000 0103 to active nodes with node table
+  new node:  disconnects
+             goes to connect scheme
+NET CONNECT/RECONNECT SCHEME
+  new node:  connects
+             0000 0102 to all nodes with its node table
+  all nodes: 0001 0102 to new node with its node table
