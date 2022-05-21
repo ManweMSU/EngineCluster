@@ -51,6 +51,8 @@ resource string TextHelp [ _ ru ] { "Help" "Вызов справки" }
 resource string TextAbout [ _ ru ] { "About" "О программе" }
 resource string TextNets [ _ ru ] { "Nets" "Сети" }
 resource string TextNodes [ _ ru ] { "Nodes" "Узлы" }
+resource string TextPower [ _ ru ] { "Power" "Питание" }
+resource string TextLoad [ _ ru ] { "Load" "Нагрузка" }
 resource string TextNameNS [ _ ru ] { "Name" "Имя" }
 resource string TextUUIDNS [ _ ru ] { "UUID" "UUID" }
 resource string TextA [ _ ru ] { "A" "A" }
@@ -172,9 +174,44 @@ dialog Main {
 				Text TextNodes ID 12
 				ControlGroup {
 					position parent
-
-					// TODO: IMPLEMENT
-
+					ListView {
+						position { z 5, z 5, w 1 z -38, w 1 z -5 }
+						ID 201
+						ListViewColumn {
+							position { 0, 0, z 28, 0 } MinimalWidth z 28
+							ViewElementNormal { texture {
+								position parent
+								texture @ Greenlight no_stretch
+							} }
+						}
+						ListViewColumn {
+							position { 0, 0, z 220, 0 } MinimalWidth z 100
+							Text TextNameNS
+							ViewElementNormal { text {
+								position { z 5, 0, w 1, w 1 }
+								text @ Name font @ Font color { 0, 0, 0 } vcenter
+							} }
+						}
+						ListViewColumn {
+							position { 0, 0, z 100, 0 } MinimalWidth z 100
+							Text TextPower
+							ViewElementNormal { frame {
+								texture { position { 0, 0, z 28, z 28 } texture @ PowerSource no_stretch }
+								text {
+									position { z 33, 0, w 1, w 1 }
+									text @ PowerLevel font @ Font color { 0, 0, 0 } vcenter
+								}
+							} }
+						}
+						ListViewColumn {
+							position { 0, 0, z 150, 0 } MinimalWidth z 100
+							Text TextLoad
+							ViewElementNormal { text {
+								position { z 5, 0, w 1, w 1 }
+								text @ Load font @ Font color { 0, 0, 0 } vcenter
+							} }
+						}
+					}
 					Button {
 						position { w 1 z -33, z 5, w 1 z -5, z 33 }
 						ImageNormal IconConnectNet ImageGrayed IconConnectNetI ID 202

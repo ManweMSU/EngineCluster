@@ -7,6 +7,18 @@ namespace Engine
 	namespace Cluster
 	{
 		constexpr uint16 ClusterServerDefaultPort = 10666;
+		constexpr uint32 AddressLevelFailure = 0x00;
+		constexpr uint32 AddressLevelNode = 0x01;
+		constexpr uint32 AddressLevelClient = 0x02;
+		constexpr uint32 AddressServiceNode = 0x000000;
+		constexpr uint32 AddressServiceWorkClient = 0x000001;
+		constexpr uint32 AddressServiceWorkHost = 0x000002;
+		constexpr uint32 AddressServiceTextLogger = 0x000003;
+		constexpr uint32 AddressServiceUserSpaceBase = 0x000004;
+		constexpr uint32 AddressNodeUndefined = 0x0000;
+		constexpr uint32 AddressNodeBase = 0x0001;
+		constexpr uint32 AddressInstanceUnique = 0x0000;
+		constexpr uint32 AddressInstanceBase = 0x0001;
 
 		typedef uint64 ObjectAddress;
 		struct UUID { uint8 bytes[16]; };
@@ -30,13 +42,21 @@ namespace Engine
 		class IServerEventCallback
 		{
 		public:
+			// This node started the server services locally
 			virtual void SwitchedToNet(const UUID * uuid) = 0;
+			// This node has begun to shut down its server services
 			virtual void SwitchingFromNet(const UUID * uuid) = 0;
+			// This node has shutted down its server services
 			virtual void SwitchedFromNet(const UUID * uuid) = 0;
+			// A node within the current net has connected
 			virtual void NodeConnected(ObjectAddress node) = 0;
+			// A node within the current net has disconnected
 			virtual void NodeDisconnected(ObjectAddress node) = 0;
+			// A node with UUID specified has joined or left the current net
 			virtual void NetTopologyChanged(const UUID * uuid) = 0;
+			// A join request sent was accepted, the joined net UUID is the following
 			virtual void NetJoined(const UUID * uuid) = 0;
+			// A net with the UUID specified (the current net) must be forgotten
 			virtual void NetLeft(const UUID * uuid) = 0;
 		};
 		class IServerMessageCallback
@@ -49,6 +69,12 @@ namespace Engine
 		string MakeStringOfUUID(const UUID * uuid);
 		bool MakeUUIDOfString(const string & text, UUID * uuid);
 		bool IsZeroUUID(const UUID * uuid);
+
+		ObjectAddress MakeObjectAddress(uint32 level, uint32 service, uint32 node, uint32 instance);
+		uint32 GetAddressLevel(ObjectAddress address);
+		uint32 GetAddressService(ObjectAddress address);
+		uint32 GetAddressNode(ObjectAddress address);
+		uint32 GetAddressInstance(ObjectAddress address);
 
 		bool ServerInitialize(void);
 		void ServerPerformAutoconnect(void);
@@ -73,10 +99,10 @@ namespace Engine
 
 		Array<UUID> * ServerEnumerateKnownNets(void);
 		bool GetServerCurrentNet(UUID * uuid);
-		string GetServerNetName(UUID * uuid);
-		bool GetServerNetAutoconnectStatus(UUID * uuid);
-		void ServerNetMakeAutoconnect(UUID * uuid);
-		Array<NodeDesc> * ServerEnumerateNetNodes(UUID * uuid);
+		string GetServerNetName(const UUID * uuid);
+		bool GetServerNetAutoconnectStatus(const UUID * uuid);
+		void ServerNetMakeAutoconnect(const UUID * uuid);
+		Array<NodeDesc> * ServerEnumerateNetNodes(const UUID * uuid);
 
 		void RegisterServerMessageCallback(IServerMessageCallback * callback);
 		void UnregisterServerMessageCallback(IServerMessageCallback * callback);

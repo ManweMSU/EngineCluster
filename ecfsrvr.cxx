@@ -27,6 +27,13 @@ namespace Structures
 		ENGINE_DEFINE_REFLECTED_PROPERTY(STRING, Autoconnect);
 		ENGINE_DEFINE_REFLECTED_PROPERTY(STRING, UUID);
 	ENGINE_END_REFLECTED_CLASS
+	ENGINE_REFLECTED_CLASS(NodeElement, Reflection::Reflected)
+		ENGINE_DEFINE_REFLECTED_PROPERTY(TEXTURE, Greenlight);
+		ENGINE_DEFINE_REFLECTED_PROPERTY(STRING, Name);
+		ENGINE_DEFINE_REFLECTED_PROPERTY(TEXTURE, PowerSource);
+		ENGINE_DEFINE_REFLECTED_PROPERTY(STRING, PowerLevel);
+		ENGINE_DEFINE_REFLECTED_PROPERTY(STRING, Load);
+	ENGINE_END_REFLECTED_CLASS
 }
 
 void RegisterWindow(IWindow * window)
@@ -185,8 +192,9 @@ public:
 class ServerPanelCallback : public IEventCallback, public IServerEventCallback
 {
 	Array<UUID> _nets;
+	Array<ObjectAddress> _nodes;
 public:
-	ServerPanelCallback(void) : _nets(0x10) {}
+	ServerPanelCallback(void) : _nets(0x10), _nodes(0x10) {}
 	void UpdateNetList(IWindow * window)
 	{
 		auto list = FindControl(window, 101)->As<Controls::ListView>();
@@ -216,25 +224,65 @@ public:
 	{
 		auto list = FindControl(window, 101)->As<Controls::ListView>();
 		auto index = list->GetSelectedIndex();
-		UUID current_uuid;
+		UUID current_uuid, selected_uuid;
 		auto connected = GetServerCurrentNet(&current_uuid);
+		if (index >= 0) selected_uuid = _nets[index]; else ZeroMemory(&selected_uuid, sizeof(UUID));
 		FindControl(window, 104)->Enable(index >= 0);
 		FindControl(window, 105)->Enable(index >= 0);
 		FindControl(window, 106)->Enable(index >= 0 && !connected);
 		FindControl(window, 107)->Enable(connected);
 		FindControl(window, 202)->Enable(index >= 0 && !connected);
-		FindControl(window, 203)->Enable(connected);
+		FindControl(window, 203)->Enable(connected && MemoryCompare(&selected_uuid, &current_uuid, sizeof(UUID)) == 0);
+
+		// TODO: IMPLEMENT
+	}
+	void UpdateNetNodes(IWindow * window)
+	{
+		auto net_list = FindControl(window, 101)->As<Controls::ListView>();
+		auto net_index = net_list->GetSelectedIndex();
+		auto node_list = FindControl(window, 201)->As<Controls::ListView>();
+		auto node_index = node_list->GetSelectedIndex();
+		auto node_selected = (node_index >= 0) ? _nodes[node_index] : 0;
+		_nodes.Clear();
+		node_list->ClearItems();
+		if (net_index >= 0) {
+			SafePointer< Array<NodeDesc> > nodes = ServerEnumerateNetNodes(&_nets[net_index]);
+			for (int i = 0; i < nodes->Length(); i++) {
+				auto & node = nodes->ElementAt(i);
+				Structures::NodeElement element;
+				element.Greenlight.SetRetain(node.online ? greenlight : graylight);
+				element.Name = node.known_name;
+
+				// TODO: IMPLEMENT
+
+				element.PowerSource.SetRetain(graylight);
+				element.PowerLevel = L"N/D";
+				element.Load = L"N/D";
+
+				// TODO: END IMPLEMENT
+
+				node_list->AddItem(element);
+				_nodes << node.ecf_address;
+				if (node_selected == node.ecf_address) node_list->SetSelectedIndex(i);
+			}
+		}
+	}
+	void UpdateNodeButtons(IWindow * window)
+	{
+		// TODO: IMPLEMENT
 	}
 	virtual void Created(IWindow * window) override
 	{
+		UUID current_net;
+		if (!GetServerCurrentNet(&current_net)) ZeroMemory(&current_net, sizeof(current_net));
 		RegisterWindow(window);
 		RegisterServerEventCallback(this);
 		main_window = window;
 		GetRootControl(window)->GetAcceleratorTable() << Accelerators::AcceleratorCommand(1, KeyCodes::F1, false);
 		UpdateNetList(window);
 		UpdateNetButtons(window);
-
-		// TODO: IMPLEMENT
+		UpdateNetNodes(window);
+		UpdateNodeButtons(window);
 	}
 	virtual void Destroyed(IWindow * window) override
 	{
@@ -257,7 +305,8 @@ public:
 		} else if (ID == 101) {
 			if (event == ControlEvent::ValueChange) {
 				UpdateNetButtons(window);
-				// TODO: UPDATE NODE LIST AND BUTTONS
+				UpdateNetNodes(window);
+				UpdateNodeButtons(window);
 			} else if (event == ControlEvent::DoubleClick) {
 				HandleControlEvent(window, 106, ControlEvent::AcceleratorCommand, 0);
 			}
@@ -300,7 +349,14 @@ public:
 			GetWindowSystem()->MessageBox(&task->Value1, *interface.Strings[L"TextNetForgetConfirmation"], ENGINE_VI_APPNAME,
 				window, MessageBoxButtonSet::YesNo, MessageBoxStyle::Warning, task);
 		} else if (ID == 105) {
-			// TODO: NET AUTOCONNECT
+			auto list = FindControl(window, 101)->As<Controls::ListView>();
+			auto index = list->GetSelectedIndex();
+			if (index >= 0) {
+				auto selected_uuid = _nets[index];
+				if (GetServerNetAutoconnectStatus(&selected_uuid)) ZeroMemory(&selected_uuid, sizeof(UUID));
+				ServerNetMakeAutoconnect(&selected_uuid);
+				UpdateNetList(window);
+			}
 		} else if (ID == 106 || ID == 202) {
 			UUID current_net;
 			auto list = FindControl(window, 101)->As<Controls::ListView>();
@@ -315,21 +371,21 @@ public:
 			}
 		} else if (ID == 107 || ID == 203) {
 			ServerNetDisconnect();
+		} else if (ID == 201) {
+			if (event == ControlEvent::ValueChange) {
+				UpdateNodeButtons(window);
+			} else if (event == ControlEvent::ContextClick) {
+				// TODO: IMPLEMENT
+			}
 		}
 		// TODO: IMPLEMENT PAGE 1
-		// TODO: TIER 2
-		// bool GetServerNetAutoconnectStatus(UUID * uuid); + ICON
-		// void ServerNetMakeAutoconnect(UUID * uuid);
 		// TODO: TIER 3
-		// void ServerNetJoin(Network::Address to, uint16 port_to, uint16 port_from); + ICON
+		// void ServerNetJoin(Network::Address to, uint16 port_to, uint16 port_from);
 		// TODO: IMPLEMENT PAGE 2
-		// TODO: TIER 2
-		// bool GetServerCurrentNet(UUID * uuid);
-		// Array<NodeDesc> * ServerEnumerateNetNodes(UUID * uuid);
 		// TODO: TIER 3
-		// bool ServerNetAllowJoin(bool allow);
-		// void ServerNetLeave(void);
-		// bool ServerNetNodeRemove(ObjectAddress node);
+		// bool ServerNetAllowJoin(bool allow);          + ICON
+		// void ServerNetLeave(void);                    + ICON
+		// bool ServerNetNodeRemove(ObjectAddress node); + ICON
 		// TODO: TIER 4 (STATUS API)
 		// TODO: IMPLEMENT
 		// TODO: ICON (SHADOW IS ALPHA=0,5, BLUR=UNIFORM-2/1/1)
@@ -339,7 +395,15 @@ public:
 		if (main_window) {
 			UpdateNetList(main_window);
 			UpdateNetButtons(main_window);
-			// TODO: UPDATE NODE LISTS AND BUTTONS TOO
+			UpdateNetNodes(main_window);
+			UpdateNodeButtons(main_window);
+		}
+	}
+	void OnNodeStatusUpdated(void)
+	{
+		if (main_window) {
+			UpdateNetNodes(main_window);
+			UpdateNodeButtons(main_window);
 		}
 	}
 	virtual void SwitchedToNet(const UUID * uuid) override
@@ -359,28 +423,28 @@ public:
 	}
 	virtual void NodeConnected(ObjectAddress node) override
 	{
-		// TODO: IMPLEMENT
-		// TODO: UPDATE NODE LISTS AND BUTTONS
+		auto self = this;
+		GetWindowSystem()->SubmitTask(CreateFunctionalTask([self]() { self->OnNodeStatusUpdated(); }));
 	}
 	virtual void NodeDisconnected(ObjectAddress node) override
 	{
-		// TODO: IMPLEMENT
-		// TODO: UPDATE NODE LISTS AND BUTTONS
+		auto self = this;
+		GetWindowSystem()->SubmitTask(CreateFunctionalTask([self]() { self->OnNodeStatusUpdated(); }));
 	}
 	virtual void NetTopologyChanged(const UUID * uuid) override
 	{
-		// TODO: IMPLEMENT
-		// TODO: UPDATE NODE LISTS AND BUTTONS
+		auto self = this;
+		GetWindowSystem()->SubmitTask(CreateFunctionalTask([self]() { self->OnNodeStatusUpdated(); }));
 	}
 	virtual void NetJoined(const UUID * uuid) override
 	{
-		// TODO: IMPLEMENT
-		// TODO: UPDATE NODE LISTS AND BUTTONS
+		auto self = this;
+		GetWindowSystem()->SubmitTask(CreateFunctionalTask([self]() { self->OnNetStatusUpdated(); }));
 	}
 	virtual void NetLeft(const UUID * uuid) override
 	{
-		// TODO: IMPLEMENT
-		// TODO: UPDATE NODE LISTS AND BUTTONS
+		auto self = this;
+		GetWindowSystem()->SubmitTask(CreateFunctionalTask([self]() { self->OnNetStatusUpdated(); }));
 	}
 };
 
