@@ -188,6 +188,78 @@ public:
 		CreateModalWindow(interface.Dialog[L"NewNetSetup"], callback, Rectangle::Entire(), parent);
 	}
 };
+class JoinNetSetupCallback : public IEventCallback
+{
+public:
+	string dest;
+	uint16 my_port, dest_port;
+	bool connecting;
+	bool IsValidAddressPort(void) { return my_port && dest_port && dest.Length() && !connecting; }
+	virtual void Created(IWindow * window) override
+	{
+		connecting = false;
+		InterlockedIncrement(modal_counter);
+		GetRootControl(window)->AddDialogStandardAccelerators();
+		FindControl(window, 1)->Enable(false);
+		ZeroMemory(&dest, sizeof(dest));
+		my_port = dest_port = ClusterServerDefaultPort;
+		FindControl(window, 102)->SetText(uint32(my_port));
+		FindControl(window, 103)->SetText(uint32(my_port));
+	}
+	virtual void Destroyed(IWindow * window) override { InterlockedDecrement(modal_counter); delete this; }
+	virtual void WindowClose(IWindow * window) override { HandleControlEvent(window, 2, ControlEvent::AcceleratorCommand, 0); }
+	virtual void HandleControlEvent(Windows::IWindow * window, int ID, ControlEvent event, Control * sender) override
+	{
+		if (ID == 1 && !connecting) {
+			if (IsValidAddressPort()) {
+				connecting = true;
+				FindControl(window, 1)->Enable(false);
+				FindControl(window, 2)->Enable(false);
+				FindControl(window, 101)->Enable(false);
+				FindControl(window, 102)->Enable(false);
+				FindControl(window, 103)->Enable(false);
+				window->SetCloseButtonState(CloseButtonState::Disabled);
+				auto wnd = window;
+				auto self = this;
+				ServerNetJoin(dest, dest_port, my_port, CreateFunctionalTask([wnd]() {
+					GetWindowSystem()->ExitModalSession(wnd);
+				}), CreateFunctionalTask([wnd, self]() {
+					self->connecting = false;
+					FindControl(wnd, 1)->Enable(true);
+					FindControl(wnd, 2)->Enable(true);
+					FindControl(wnd, 101)->Enable(true);
+					FindControl(wnd, 102)->Enable(true);
+					FindControl(wnd, 103)->Enable(true);
+					wnd->SetCloseButtonState(CloseButtonState::Enabled);
+					GetWindowSystem()->MessageBox(0, *interface.Strings[L"TextFailedToJoin"], ENGINE_VI_APPNAME,
+						wnd, MessageBoxButtonSet::Ok, MessageBoxStyle::Warning, 0);
+				}));
+			}
+		} else if (ID == 2 && !connecting) {
+			GetWindowSystem()->ExitModalSession(window);
+		} else if (ID == 101 && event == ControlEvent::ValueChange) {
+			dest = sender->GetText();
+			FindControl(window, 1)->Enable(IsValidAddressPort());
+		} else if (ID == 102 && event == ControlEvent::ValueChange) {
+			try {
+				dest_port = sender->GetText().ToUInt32();
+				if (dest_port > 0xFFFF) throw InvalidArgumentException();
+			} catch (...) { dest_port = 0; }
+			FindControl(window, 1)->Enable(IsValidAddressPort());
+		} else if (ID == 103 && event == ControlEvent::ValueChange) {
+			try {
+				my_port = sender->GetText().ToUInt32();
+				if (my_port > 0xFFFF) throw InvalidArgumentException();
+			} catch (...) { my_port = 0; }
+			FindControl(window, 1)->Enable(IsValidAddressPort());
+		}
+	}
+	static void JoinNetDialog(IWindow * parent)
+	{
+		auto callback = new JoinNetSetupCallback;
+		CreateModalWindow(interface.Dialog[L"JoinNetSetup"], callback, Rectangle::Entire(), parent);
+	}
+};
 
 class ServerPanelCallback : public IEventCallback, public IServerEventCallback
 {
@@ -206,7 +278,7 @@ public:
 		_nets.Clear();
 		list->ClearItems();
 		SafePointer< Array<UUID> > uuids = ServerEnumerateKnownNets();
-		for (int i = 0; i < uuids->Length(); i++) {
+		if (uuids) for (int i = 0; i < uuids->Length(); i++) {
 			Structures::NetElement element;
 			bool is_selected = MemoryCompare(&uuids->ElementAt(i), &selected, sizeof(UUID)) == 0;
 			bool is_active = MemoryCompare(&uuids->ElementAt(i), &active, sizeof(UUID)) == 0;
@@ -233,8 +305,7 @@ public:
 		FindControl(window, 107)->Enable(connected);
 		FindControl(window, 202)->Enable(index >= 0 && !connected);
 		FindControl(window, 203)->Enable(connected && MemoryCompare(&selected_uuid, &current_uuid, sizeof(UUID)) == 0);
-
-		// TODO: IMPLEMENT
+		FindControl(window, 204)->Enable(connected && MemoryCompare(&selected_uuid, &current_uuid, sizeof(UUID)) == 0);
 	}
 	void UpdateNetNodes(IWindow * window)
 	{
@@ -247,7 +318,7 @@ public:
 		node_list->ClearItems();
 		if (net_index >= 0) {
 			SafePointer< Array<NodeDesc> > nodes = ServerEnumerateNetNodes(&_nets[net_index]);
-			for (int i = 0; i < nodes->Length(); i++) {
+			if (nodes) for (int i = 0; i < nodes->Length(); i++) {
 				auto & node = nodes->ElementAt(i);
 				Structures::NodeElement element;
 				element.Greenlight.SetRetain(node.online ? greenlight : graylight);
@@ -269,7 +340,18 @@ public:
 	}
 	void UpdateNodeButtons(IWindow * window)
 	{
-		// TODO: IMPLEMENT
+		auto net_list = FindControl(window, 101)->As<Controls::ListView>();
+		auto net_index = net_list->GetSelectedIndex();
+		auto node_list = FindControl(window, 201)->As<Controls::ListView>();
+		auto node_index = node_list->GetSelectedIndex();
+		UUID current_net_uuid, selected_net_uuid;
+		ObjectAddress selected_node_addr;
+		auto connected = GetServerCurrentNet(&current_net_uuid);
+		if (net_index >= 0) selected_net_uuid = _nets[net_index];
+		else ZeroMemory(&selected_net_uuid, sizeof(UUID));
+		if (node_index >= 0) selected_node_addr = _nodes[node_index];
+		else selected_node_addr = 0;
+		FindControl(window, 205)->Enable(connected && MemoryCompare(&selected_net_uuid, &current_net_uuid, sizeof(UUID)) == 0 && selected_node_addr);
 	}
 	virtual void Created(IWindow * window) override
 	{
@@ -326,7 +408,7 @@ public:
 			SafePointer<Task> task = new _update_list_task(window, this);
 			NewNetSetupCallback::NewNetDialog(window, task);
 		} else if (ID == 103) {
-			// TODO: NET JOIN
+			JoinNetSetupCallback::JoinNetDialog(window);
 		} else if (ID == 104) {
 			auto wnd = window;
 			auto self = this;
@@ -377,15 +459,26 @@ public:
 			} else if (event == ControlEvent::ContextClick) {
 				// TODO: IMPLEMENT
 			}
+		} else if (ID == 204) {
+			auto task = CreateStructuredTask<MessageBoxResult>([](MessageBoxResult result) {
+				if (result == MessageBoxResult::Yes) ServerNetAllowJoin(true);
+				else if (result == MessageBoxResult::No) ServerNetAllowJoin(false);
+			});
+			GetWindowSystem()->MessageBox(&task->Value1, *interface.Strings[L"TextAllowJoinConfirmation"], ENGINE_VI_APPNAME,
+				window, MessageBoxButtonSet::YesNoCancel, MessageBoxStyle::Warning, task);
+		} else if (ID == 205) {
+			auto list = FindControl(window, 201)->As<Controls::ListView>();
+			auto index = list->GetSelectedIndex();
+			auto address = (index >= 0) ? _nodes[index] : 0;
+			if (address) {
+				auto task = CreateStructuredTask<MessageBoxResult>([address](MessageBoxResult result) {
+					if (result == MessageBoxResult::Yes) ServerNetNodeRemove(address);
+				});
+				GetWindowSystem()->MessageBox(&task->Value1, *interface.Strings[L"TextNodeRemoveConfirmation"], ENGINE_VI_APPNAME,
+					window, MessageBoxButtonSet::YesNo, MessageBoxStyle::Warning, task);
+			}
 		}
-		// TODO: IMPLEMENT PAGE 1
-		// TODO: TIER 3
-		// void ServerNetJoin(Network::Address to, uint16 port_to, uint16 port_from);
 		// TODO: IMPLEMENT PAGE 2
-		// TODO: TIER 3
-		// bool ServerNetAllowJoin(bool allow);          + ICON
-		// void ServerNetLeave(void);                    + ICON
-		// bool ServerNetNodeRemove(ObjectAddress node); + ICON
 		// TODO: TIER 4 (STATUS API)
 		// TODO: IMPLEMENT
 		// TODO: ICON (SHADOW IS ALPHA=0,5, BLUR=UNIFORM-2/1/1)
@@ -409,7 +502,20 @@ public:
 	virtual void SwitchedToNet(const UUID * uuid) override
 	{
 		auto self = this;
-		GetWindowSystem()->SubmitTask(CreateFunctionalTask([self]() { self->OnNetStatusUpdated(); }));
+		auto nets = &_nets;
+		UUID local_uuid;
+		if (uuid) local_uuid = *uuid;
+		else ZeroMemory(&local_uuid, sizeof(UUID));
+		GetWindowSystem()->SubmitTask(CreateFunctionalTask([self, nets, local_uuid]() {
+			if (!main_window) return;
+			self->OnNetStatusUpdated();
+			auto list = FindControl(main_window, 101)->As<Controls::ListView>();
+			for (int i = 0; i < nets->Length(); i++) if (MemoryCompare(&nets->ElementAt(i), &local_uuid, sizeof(UUID)) == 0) {
+				list->SetSelectedIndex(i, true);
+				self->HandleControlEvent(main_window, list->GetID(), ControlEvent::ValueChange, list);
+				break;
+			}
+		}));
 	}
 	virtual void SwitchingFromNet(const UUID * uuid) override
 	{
@@ -440,6 +546,7 @@ public:
 	{
 		auto self = this;
 		GetWindowSystem()->SubmitTask(CreateFunctionalTask([self]() { self->OnNetStatusUpdated(); }));
+		ServerNetConnect(uuid);
 	}
 	virtual void NetLeft(const UUID * uuid) override
 	{

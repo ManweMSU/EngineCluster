@@ -92,10 +92,9 @@ namespace Engine
 		bool ServerNetConnect(const UUID * uuid);
 		void ServerNetDisconnect(void);
 		bool ServerNetAllowJoin(bool allow);
-		void ServerNetJoin(Network::Address to, uint16 port_to, uint16 port_from);
-		void ServerNetLeave(void);
+		void ServerNetJoin(const string & to, uint16 port_to, uint16 port_from, IDispatchTask * on_success, IDispatchTask * on_fail);
 		void ServerNetForget(const UUID * uuid);
-		bool ServerNetNodeRemove(ObjectAddress node);
+		void ServerNetNodeRemove(ObjectAddress node);
 
 		Array<UUID> * ServerEnumerateKnownNets(void);
 		bool GetServerCurrentNet(UUID * uuid);

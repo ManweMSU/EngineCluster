@@ -43,7 +43,17 @@ namespace Engine
 		struct NewClientDesc
 		{
 			SafePointer<Socket> socket;
+			UUID uuid;
 			ObjectAddress address;
+			Network::Address ip_addr;
+			uint16 ip_port;
+		};
+		struct JoinNetRequest
+		{
+			string address_notation;
+			uint16 port_to, port_my;
+			SafePointer<IDispatchTask> on_success;
+			SafePointer<IDispatchTask> on_fail;
 		};
 
 		SafeArray<NetDesc> known_nets(0x10);
@@ -73,18 +83,79 @@ namespace Engine
 			node->CreateValue(prop, RegistryValueType::Binary);
 			node->SetValue(prop, &t, sizeof(T));
 		}
+		void SerializeNetDesc(RegistryNode * node_to, const NetDesc & net)
+		{
+			node_to->CreateValue(ECF_CP_NETNAME, RegistryValueType::String);
+			node_to->SetValue(ECF_CP_NETNAME, net.name);
+			RegistryWriteBinary(node_to, ECF_CP_NETUUID, net.uuid);
+			node_to->CreateValue(ECF_CP_NETAUTOCONNECT, RegistryValueType::Boolean);
+			node_to->SetValue(ECF_CP_NETAUTOCONNECT, net.autoconnect);
+			node_to->CreateValue(ECF_CP_NETTIMESTAMP, RegistryValueType::Time);
+			node_to->SetValue(ECF_CP_NETTIMESTAMP, net.desc_time);
+			for (int j = 0; j < net.nodes.Length(); j++) {
+				auto & node = net.nodes[j];
+				auto node_reg_name = string(uint(j + 1), HexadecimalBase, 4);
+				node_to->CreateNode(node_reg_name);
+				SafePointer<RegistryNode> node_reg = node_to->OpenNode(node_reg_name);
+				node_reg->CreateValue(ECF_CP_NODENAME, RegistryValueType::String);
+				node_reg->SetValue(ECF_CP_NODENAME, node.known_name);
+				RegistryWriteBinary(node_reg, ECF_CP_NODEUUID, node.uuid);
+				RegistryWriteBinary(node_reg, ECF_CP_NODEECFADDRESS, node.ecf_address);
+				RegistryWriteBinary(node_reg, ECF_CP_NODEIPADDRESS, node.ip_address);
+				node_reg->CreateValue(ECF_CP_NODEIPPORT, RegistryValueType::Integer);
+				node_reg->SetValue(ECF_CP_NODEIPPORT, node.ip_port);
+			}
+		}
+		NetDesc DeserializeNetDesc(RegistryNode * node_from)
+		{
+			NetDesc net_desc;
+			net_desc.name = node_from->GetValueString(ECF_CP_NETNAME);
+			RegistryReadBinary(node_from, ECF_CP_NETUUID, net_desc.uuid);
+			net_desc.autoconnect = node_from->GetValueBoolean(ECF_CP_NETAUTOCONNECT);
+			net_desc.desc_time = node_from->GetValueTime(ECF_CP_NETTIMESTAMP);
+			for (auto & n : node_from->GetSubnodes()) {
+				SafePointer<RegistryNode> node_node = node_from->OpenNode(n);
+				NodeDesc node_desc;
+				node_desc.known_name = node_node->GetValueString(ECF_CP_NODENAME);
+				RegistryReadBinary(node_node, ECF_CP_NODEUUID, node_desc.uuid);
+				RegistryReadBinary(node_node, ECF_CP_NODEECFADDRESS, node_desc.ecf_address);
+				RegistryReadBinary(node_node, ECF_CP_NODEIPADDRESS, node_desc.ip_address);
+				node_desc.ip_port = node_node->GetValueInteger(ECF_CP_NODEIPPORT);
+				node_desc.online = false;
+				net_desc.nodes << node_desc;
+			}
+			return net_desc;
+		}
+		DataBlock * SerializeNetDesc(const NetDesc & net)
+		{
+			SafePointer<Registry> reg = CreateRegistry();
+			MemoryStream stream(0x1000);
+			SerializeNetDesc(reg, net);
+			reg->Save(&stream);
+			stream.Seek(0, Begin);
+			return stream.ReadAll();
+		}
+		NetDesc DeserializeNetDesc(const DataBlock * data)
+		{
+			MemoryStream stream(0x1000);
+			stream.WriteArray(data);
+			stream.Seek(0, Begin);
+			SafePointer<Registry> reg = LoadRegistry(&stream);
+			if (!reg) throw InvalidFormatException();
+			return DeserializeNetDesc(reg);
+		}
 
 		void ServiceShutdown(void)
 		{
 			auto dec = InterlockedDecrement(service_counter);
 			if (!dec) {
 				net_status = 0;
-				net_shutdown_sync->Open();
 				for (auto & cb : event_callbacks) cb->SwitchedFromNet(&net_uuid);
 				Windows::GetWindowSystem()->SubmitTask(CreateFunctionalTask([]() {
 					Power::PreventIdleSleep(Power::Prevent::None);
 				}));
 				ZeroMemory(&net_uuid, sizeof(UUID));
+				net_shutdown_sync->Open();
 			}
 		}
 		void InternalSendMessage(Socket * socket, uint32 verb, ObjectAddress from, ObjectAddress to, const DataBlock * payload)
@@ -98,12 +169,40 @@ namespace Engine
 		}
 		bool InternalSendMessage(uint32 verb, ObjectAddress from, ObjectAddress to, const DataBlock * payload, bool lock = true)
 		{
-			if (lock) net_sync->Wait();
-
-			// TODO: IMPLEMENT
-
-			if (lock) net_sync->Open();
-			return false;
+			bool status = false;
+			if (to != self_addr) {
+				if (lock) net_sync->Wait();
+				if (GetAddressNode(to) == 0) {
+					status = true;
+					for (auto & i : node_info) if (GetAddressNode(i.node_desc->ecf_address) != GetAddressNode(self_addr) && i.socket) {
+						try {
+							InternalSendMessage(i.socket, verb, from, i.node_desc->ecf_address, payload);
+						} catch (...) { status = false; }
+					}
+				} else {
+					if (GetAddressNode(to) != GetAddressNode(self_addr)) {
+						for (auto & i : node_info) if (GetAddressNode(i.node_desc->ecf_address) == GetAddressNode(to)) {
+							if (i.socket) {
+								try {
+									InternalSendMessage(i.socket, verb, from, to, payload);
+									status = true;
+								} catch (...) {}
+							}
+							break;
+						}
+					} else {
+						// TODO: IMPLEMENT ENDPOINT SEARCH
+					}
+				}
+				if (lock) net_sync->Open();
+			} else {
+				for (auto & hdlr : message_callbacks) if (hdlr->RespondsToMessage(verb)) {
+					hdlr->HandleMessage(from, to, verb, payload);
+					status = true;
+					break;
+				}
+			}
+			return status;
 		}
 		void InternalGetMessage(Socket * socket, uint32 & verb, ObjectAddress & from, ObjectAddress & to, DataBlock ** payload)
 		{
@@ -125,7 +224,21 @@ namespace Engine
 				if (net_status == 2) throw Exception();
 			}
 		}
-		ObjectAddress PerformIncomingHandshake(Socket * socket)
+		ObjectAddress ConnectNode(Socket * socket, const UUID * uuid)
+		{
+			NodeConnectionInfo * info = 0;
+			for (auto & i : node_info) if (MemoryCompare(uuid, &i.node_desc->uuid, sizeof(UUID)) == 0) {
+				info = &i;
+				break;
+			}
+			if (!info) throw Exception();
+			if (info->socket) throw Exception();
+			info->socket.SetRetain(socket);
+			info->node_desc->online = true;
+			for (auto & cb : event_callbacks) cb->NodeConnected(info->node_desc->ecf_address);
+			return info->node_desc->ecf_address;
+		}
+		ObjectAddress PerformIncomingHandshake(Socket * socket, UUID * ret_client_uuid)
 		{
 			ObjectAddress result = 0;
 			net_sync->Wait();
@@ -138,11 +251,12 @@ namespace Engine
 				try {
 					if ((ot & 0xFF000000) == 0x01000000) {
 						UUID client_uuid, my_uuid;
-						socket->Read(&client_uuid, 8);
-						socket->Read(&my_uuid, 8);
-						if (MemoryCompare(&my_uuid, &node_uuid, sizeof(UUID))) throw Exception();
-						if (IsZeroUUID(&client_uuid)) {
+						socket->Read(&client_uuid, sizeof(UUID));
+						socket->Read(&my_uuid, sizeof(UUID));
+						MemoryCopy(ret_client_uuid, &client_uuid, sizeof(UUID));
+						if (IsZeroUUID(&my_uuid)) {
 							if (!join_allowed) throw Exception();
+							join_allowed = false;
 							ObjectAddress return_address = MakeObjectAddress(AddressLevelNode, AddressServiceNode, AddressNodeUndefined, AddressInstanceUnique);
 							MemoryCopy(&sign, "ECLFRESP", 8);
 							socket->Write(&sign, 8);
@@ -150,20 +264,15 @@ namespace Engine
 							socket->Write(&self_addr, 8);
 							result = 0;
 						} else {
-							NodeConnectionInfo * info = 0;
-							for (auto & i : node_info) if (MemoryCompare(&client_uuid, &i.node_desc->uuid, sizeof(UUID)) == 0) {
-								info = &i;
-								break;
-							}
-							if (!info) throw Exception();
+							if (MemoryCompare(&my_uuid, &node_uuid, sizeof(UUID))) throw Exception();
+							result = ConnectNode(socket, &client_uuid);
 							MemoryCopy(&sign, "ECLFRESP", 8);
 							socket->Write(&sign, 8);
-							socket->Write(&info->node_desc->ecf_address, 8);
+							socket->Write(&result, 8);
 							socket->Write(&self_addr, 8);
-							info->socket.SetRetain(socket);
-							result = info->node_desc->ecf_address;
 						}
 					} else if ((ot & 0xFF000000) == 0x02000000) {
+						ZeroMemory(ret_client_uuid, sizeof(UUID));
 						// TODO: IMPLEMENT ENDPOINT HANDSHAKE (INCOMING SIDE)
 					} else throw Exception();
 				} catch (...) {
@@ -179,36 +288,160 @@ namespace Engine
 			net_sync->Open();
 			return result;
 		}
+		int LeaveCurrentNetThread(void * arg_ptr)
+		{
+			UUID uuid;
+			net_sync->Wait();
+			MemoryCopy(&uuid, &net_uuid, sizeof(UUID));
+			net_sync->Open();
+			ServerNetDisconnect();
+			net_shutdown_sync->Wait();
+			net_shutdown_sync->Open();
+			ServerNetForget(&uuid);
+			return 0;
+		}
+		void UpdateNetNodesWithNet(NetDesc * net_update, const NetDesc * with)
+		{
+			bool net_leave = false;
+			net_sync->Wait();
+			for (auto & nn : with->nodes) {
+				bool present = false;
+				for (auto & on : net_update->nodes) if (MemoryCompare(&on.uuid, &nn.uuid, sizeof(UUID)) == 0) {
+					present = true;
+					break;
+				}
+				if (!present) try {
+					net_update->nodes << nn;
+					NodeConnectionInfo ni;
+					ni.net_desc = net_update;
+					ni.node_desc = &net_update->nodes.LastElement();
+					node_info << ni;
+				} catch (...) {}
+			}
+			for (int i = node_info.Length() - 1; i >= 0; i--) {
+				auto & ni = node_info[i];
+				auto on = ni.node_desc;
+				bool present = false;
+				for (auto & nn : with->nodes) if (MemoryCompare(&on->uuid, &nn.uuid, sizeof(UUID)) == 0) {
+					present = true;
+					break;
+				}
+				if (!present) {
+					if (MemoryCompare(&node_uuid, &on->uuid, sizeof(UUID)) == 0) net_leave = true;
+					for (int j = 0; j < net_update->nodes.Length(); j++) {
+						if (MemoryCompare(&net_update->nodes[j].uuid, &on->uuid, sizeof(UUID)) == 0) {
+							net_update->nodes.Remove(j);
+							break;
+						}
+					}
+					node_info.Remove(i);
+				}
+			}
+			net_update->desc_time = with->desc_time;
+			net_update->name = with->name;
+			config_alternated = true;
+			net_sync->Open();
+			for (auto & cb : event_callbacks) cb->NetTopologyChanged(&net_update->uuid);
+			if (net_leave) {
+				SafePointer<Thread> thread = CreateThread(LeaveCurrentNetThread);
+			}
+		}
 		int ClientThread(void * arg_ptr)
 		{
 			InterlockedIncrement(service_counter);
 			auto desc = reinterpret_cast<NewClientDesc *>(arg_ptr);
-			dcon.WriteLine(L"Client service started");
 			while (true) {
 				try {
 					SafePointer<DataBlock> payload;
 					uint32 verb;
 					ObjectAddress addr_from, addr_to;
 					InternalGetMessage(desc->socket, verb, addr_from, addr_to, payload.InnerRef());
-					dcon.WriteLine(FormatString(L"Got a message %0 from %1 to %2.", string(verb, HexadecimalBase, 8),
-						string(addr_from, HexadecimalBase, 16), string(addr_to, HexadecimalBase, 16)));
 					if ((verb & 0xFF00) == 0x0100) {
-						// TODO: IMPLEMENT
-						// ADDRESS:
-						//  0 - new node candidate
-						//  LEVEL 01 - node
-						// SERVER INTERNAL CONVERSATION
-						// SERVER TO SERVER ONLY
-						//   0000 0101 - server net node join
-						//   0001 0101 - server net node join responce
-						//   0000 0102 - server net node connect
-						//   0001 0102 - server net node connect responce
-						//   0000 0103 - server net update node list
+						if (verb == 0x00000101) {
+							Network::Address my_ip;
+							uint16 client_port;
+							string client_name;
+							MemoryCopy(&my_ip, payload->GetBuffer(), sizeof(Network::Address));
+							MemoryCopy(&client_port, payload->GetBuffer() + sizeof(Network::Address), sizeof(uint16));
+							client_name = string(payload->GetBuffer() + sizeof(Network::Address) + sizeof(uint16),
+								payload->Length() - sizeof(Network::Address) - sizeof(uint16), Encoding::UTF8);
+							net_sync->Wait();
+							NetDesc * net = 0;
+							uint32 mx_node = 0;
+							for (auto & i : node_info) {
+								auto node_addr = GetAddressNode(i.node_desc->ecf_address);
+								if (node_addr > mx_node) mx_node = node_addr;
+								if (MemoryCompare(&i.node_desc->uuid, &node_uuid, sizeof(UUID)) == 0) {
+									Network::Address loopback = Network::Address::CreateLoopBackIPv6();
+									if (MemoryCompare(&loopback, &i.node_desc->ip_address, sizeof(Network::Address)) == 0) {
+										i.node_desc->ip_address = my_ip;
+										config_alternated = true;
+									}
+									net = i.net_desc;
+								}
+							}
+							if (!net) {
+								net_sync->Open();
+								throw Exception();
+							}
+							SafePointer<DataBlock> net_desc_serialized;
+							try {
+								mx_node++;
+								NodeDesc new_node;
+								NodeConnectionInfo con_info;
+								new_node.ecf_address = MakeObjectAddress(AddressLevelNode, AddressServiceNode, mx_node, AddressInstanceUnique);
+								new_node.ip_address = desc->ip_addr;
+								new_node.ip_port = client_port;
+								new_node.known_name = client_name;
+								new_node.online = false;
+								MemoryCopy(&new_node.uuid, &desc->uuid, sizeof(UUID));
+								net->nodes << new_node;
+								net->desc_time = Time::GetCurrentTime();
+								con_info.net_desc = net;
+								con_info.node_desc = &net->nodes.LastElement();
+								node_info << con_info;
+								net_desc_serialized = SerializeNetDesc(*net);
+								config_alternated = true;
+							} catch (...) {
+								net_sync->Open();
+								throw;
+							}
+							net_sync->Open();
+							for (auto & cb : event_callbacks) cb->NetTopologyChanged(&net_uuid);
+							InternalSendMessage(desc->socket, 0x00010101, self_addr, desc->address, net_desc_serialized);
+							InternalSendMessage(0x00000103, self_addr, MakeObjectAddress(AddressLevelNode, AddressServiceNode,
+								AddressNodeUndefined, AddressInstanceUnique), net_desc_serialized);
+						} else if (verb == 0x00000102) {
+							auto advised_net = DeserializeNetDesc(payload);
+							NetDesc * current_net = 0;
+							for (auto & i : node_info) if (MemoryCompare(&i.node_desc->uuid, &node_uuid, sizeof(UUID)) == 0) {
+								current_net = i.net_desc;
+								break;
+							}
+							if (!current_net) throw Exception();
+							if (advised_net.desc_time > current_net->desc_time) {
+								UpdateNetNodesWithNet(current_net, &advised_net);
+								InternalSendMessage(0x00000103, self_addr, MakeObjectAddress(AddressLevelNode,
+									AddressServiceNode, AddressNodeUndefined, AddressInstanceUnique), payload);
+							} else if (advised_net.desc_time < current_net->desc_time) {
+								SafePointer<DataBlock> my_net_data = SerializeNetDesc(*current_net);
+								InternalSendMessage(0x00000103, self_addr, desc->address, my_net_data);
+							}
+						} else if (verb == 0x00000103) {
+							auto advised_net = DeserializeNetDesc(payload);
+							NetDesc * current_net = 0;
+							for (auto & i : node_info) if (MemoryCompare(&i.node_desc->uuid, &node_uuid, sizeof(UUID)) == 0) {
+								current_net = i.net_desc;
+								break;
+							}
+							if (!current_net) throw Exception();
+							if (advised_net.desc_time > current_net->desc_time) {
+								UpdateNetNodesWithNet(current_net, &advised_net);
+							}
+						}
 					} else if (addr_to == self_addr) {
 						if ((verb & 0xFF00) == 0x0000) {
-							if (verb = 0x00000001) { // PING
-								ServerSendMessage(0x00010001, addr_from, payload);
-							}
+							if (verb = 0x00000001) ServerSendMessage(0x00010001, addr_from, payload);
 						} else {
 							for (auto & hdlr : message_callbacks) if (hdlr->RespondsToMessage(verb)) {
 								hdlr->HandleMessage(addr_from, addr_to, verb, payload);
@@ -219,16 +452,32 @@ namespace Engine
 				} catch (...) { break; }
 			}
 			desc->socket->Shutdown(true, true);
-			dcon.WriteLine(L"Client service is shutting down");
+			net_sync->Wait();
+			if (GetAddressLevel(desc->address) == AddressLevelNode) {
+				for (auto & i : node_info) {
+					if (i.node_desc->ecf_address == desc->address) {
+						i.socket.SetReference(0);
+						i.node_desc->online = false;
+						for (auto & cb : event_callbacks) cb->NodeDisconnected(i.node_desc->ecf_address);
+						break;
+					}
+				}
+			} else if (GetAddressLevel(desc->address) == AddressLevelClient) {
+				// TODO: UNREGISTER CLIENT AND SOCKET
+			}
+			net_sync->Open();
 			delete desc;
 			ServiceShutdown();
 			return 0;
 		}
-		void RunClientThread(Socket * socket, ObjectAddress address)
+		void RunClientThread(Socket * socket, const UUID * uuid, ObjectAddress address, Network::Address ip_addr, uint16 ip_port)
 		{
 			auto client_desc = new NewClientDesc;
 			client_desc->socket.SetRetain(socket);
 			client_desc->address = address;
+			client_desc->ip_addr = ip_addr;
+			client_desc->ip_port = ip_port;
+			MemoryCopy(&client_desc->uuid, uuid, sizeof(UUID));
 			SafePointer<Thread> chat = CreateThread(ClientThread, client_desc);
 			if (!chat) delete client_desc;
 		}
@@ -237,12 +486,13 @@ namespace Engine
 			InterlockedIncrement(service_counter);
 			while (true) {
 				try {
+					UUID uuid;
 					Address address;
 					uint16 port;
 					SafePointer<Socket> client = incoming_socket->Accept(address, port);
 					if (net_status == 2) break;
-					ObjectAddress address_assigned = PerformIncomingHandshake(client);
-					RunClientThread(client, address_assigned);
+					ObjectAddress address_assigned = PerformIncomingHandshake(client, &uuid);
+					RunClientThread(client, &uuid, address_assigned, address, port);
 				} catch (...) {
 					if (net_status == 2) break;
 				}
@@ -260,45 +510,113 @@ namespace Engine
 		int ReconnectionThread(void * arg_ptr)
 		{
 			InterlockedIncrement(service_counter);
-			dcon.WriteLine(L"Reconnection service started");
 			while (true) {
-				// TODO: REWORK
-				// net_sync->Wait();
-				// for (int i = 0; i < node_info.Length(); i++) {
-				// 	if (!node_info[i].node_desc->online) {
-				// 		try {
-				// 			SafePointer<Socket> socket = CreateSocket(SocketAddressDomain::IPv6, SocketProtocol::TCP);
-				// 			socket->Connect(node_info[i].node_desc->ip_address, node_info[i].node_desc->ip_port);
-				// 			char sign[8];
-				// 			uint32 ot;
-				// 			MemoryCopy(&sign, "ECLFAUTH", 8);
-				// 			ot = 0x01000000;
-				// 			socket->Write(&sign, 8);
-				// 			socket->Write(&ot, 4);
-				// 			socket->Write(&node_uuid, sizeof(UUID));
-				// 			socket->Write(&node_info[i].net_desc->uuid, sizeof(UUID));
-				// 			ObjectAddress self, server;
-				// 			socket->Read(&sign, 8);
-				// 			if (MemoryCompare(&sign, "ECLFRESP", 8)) throw Exception();
-				// 			socket->Read(&self, 8);
-				// 			socket->Read(&server, 8);
-				// 			if (self != self_addr || server != node_info[i].node_desc->ecf_address) throw Exception();
-				// 			// HANDSHAKE SUCCESSFUL
-				// 			// TODO: IMPLEMENT NODE TABLE EXCHANGE
-				// 		} catch (...) { continue; }
-				// 	}
-				// }
-				// net_sync->Open();
-				// TODO: END REWORK
-
+				Array<UUID> try_connect(0x10);
+				net_sync->Wait();
+				for (auto & i : node_info) if (!i.socket && MemoryCompare(&i.node_desc->uuid, &node_uuid, sizeof(UUID))) {
+					try { try_connect << i.node_desc->uuid; } catch (...) {}
+				}
+				net_sync->Open();
+				if (net_status != 1) break;
+				while (try_connect.Length()) {
+					net_sync->Wait();
+					auto conn = try_connect.LastElement();
+					try_connect.RemoveLast();
+					try {
+						for (auto & i : node_info) if (MemoryCompare(&conn, &i.node_desc->uuid, sizeof(UUID)) == 0 && !i.socket) {
+							if (net_status != 1) break;
+							SafePointer<Socket> socket = CreateSocket(SocketAddressDomain::IPv6, SocketProtocol::TCP);
+							socket->Connect(i.node_desc->ip_address, i.node_desc->ip_port);
+							char sign[8];
+							uint32 ot;
+							MemoryCopy(&sign, "ECLFAUTH", 8);
+							ot = 0x01000000;
+							socket->Write(&sign, 8);
+							socket->Write(&ot, 4);
+							socket->Write(&node_uuid, sizeof(UUID));
+							socket->Write(&i.node_desc->uuid, sizeof(UUID));
+							ObjectAddress self, server;
+							socket->Read(&sign, 8);
+							if (MemoryCompare(&sign, "ECLFRESP", 8)) throw Exception();
+							socket->Read(&self, 8);
+							socket->Read(&server, 8);
+							if (self != self_addr || server != i.node_desc->ecf_address) throw Exception();
+							auto addr = ConnectNode(socket, &i.node_desc->uuid);
+							RunClientThread(socket, &i.node_desc->uuid, i.node_desc->ecf_address, i.node_desc->ip_address, i.node_desc->ip_port);
+							SafePointer<DataBlock> net_data = SerializeNetDesc(*i.net_desc);
+							InternalSendMessage(socket, 0x00000102, self_addr, i.node_desc->ecf_address, net_data);
+							break;
+						}
+					} catch (...) {}
+					net_sync->Open();
+				}
 				if (net_status != 1) break;
 				for (int i = 0; i < 10; i++) {
 					Sleep(1000);
 					if (net_status != 1) break;
 				}
 			}
-			dcon.WriteLine(L"Reconnection service is shutting down");
 			ServiceShutdown();
+			return 0;
+		}
+		int JoinThread(void * arg_ptr)
+		{
+			auto req = reinterpret_cast<JoinNetRequest *>(arg_ptr);
+			try {
+				SafePointer< Array<Network::AddressEntity> > addr = Network::GetAddressByHost(req->address_notation,
+					req->port_to, Network::SocketAddressDomain::IPv6, Network::SocketProtocol::TCP);
+				if (!addr || !addr->Length()) throw Exception();
+				auto address = addr->FirstElement().EntityAddress;
+				SafePointer<Socket> socket = CreateSocket(Network::SocketAddressDomain::IPv6, Network::SocketProtocol::TCP);
+				socket->Connect(address, req->port_to);
+				UUID zero;
+				ZeroMemory(&zero, sizeof(zero));
+				char sign[8];
+				uint32 ot;
+				ObjectAddress ecfa_server, ecfa_my;
+				MemoryCopy(&sign, "ECLFAUTH", 8);
+				ot = 0x01000000;
+				socket->Write(&sign, 8);
+				socket->Write(&ot, 4);
+				socket->Write(&node_uuid, sizeof(UUID));
+				socket->Write(&zero, sizeof(UUID));
+				socket->Read(&sign, 8);
+				socket->Read(&ecfa_my, 8);
+				socket->Read(&ecfa_server, 8);
+				if (MemoryCompare(&sign, "ECLFRESP", 8)) throw Exception();
+				SafePointer<DataBlock> data = new DataBlock(1);
+				data->SetLength(sizeof(Network::Address) + sizeof(uint16) + node_name.GetEncodedLength(Encoding::UTF8));
+				MemoryCopy(data->GetBuffer(), &address, sizeof(address));
+				MemoryCopy(data->GetBuffer() + sizeof(address), &req->port_my, sizeof(req->port_my));
+				node_name.Encode(data->GetBuffer() + sizeof(address) + sizeof(uint16), Encoding::UTF8, false);
+				InternalSendMessage(socket, 0x00000101, ecfa_my, ecfa_server, data);
+				UUID new_net;
+				while (true) {
+					uint32 verb;
+					ObjectAddress a1, a2;
+					data.SetReference(0);
+					InternalGetMessage(socket, verb, a1, a2, data.InnerRef());
+					if (verb == 0x00010101) {
+						socket->Shutdown(true, true);
+						auto net = DeserializeNetDesc(data);
+						net.autoconnect = false;
+						net_sync->Wait();
+						try {
+							for (auto & n : known_nets) if (MemoryCompare(&n.uuid, &net.uuid, sizeof(UUID)) == 0) throw Exception();
+							known_nets << net;
+							config_alternated = true;
+							net_sync->Open();
+						} catch (...) { net_sync->Open(); throw; }
+						MemoryCopy(&new_net, &net.uuid, sizeof(UUID));
+						break;
+					} else throw Exception();
+				}
+				for (auto & cb : event_callbacks) cb->NetJoined(&new_net);
+				Windows::GetWindowSystem()->SubmitTask(req->on_success);
+			} catch (...) {
+				Windows::GetWindowSystem()->SubmitTask(req->on_fail);
+			}
+			delete req;
 			return 0;
 		}
 
@@ -374,22 +692,7 @@ namespace Engine
 				RegistryReadBinary(config, ECF_CP_NODEUUID, node_uuid);
 				for (auto & d : config->GetSubnodes()) {
 					SafePointer<RegistryNode> net_node = config->OpenNode(d);
-					NetDesc net_desc;
-					net_desc.name = net_node->GetValueString(ECF_CP_NETNAME);
-					RegistryReadBinary(net_node, ECF_CP_NETUUID, net_desc.uuid);
-					net_desc.autoconnect = net_node->GetValueBoolean(ECF_CP_NETAUTOCONNECT);
-					net_desc.desc_time = net_node->GetValueTime(ECF_CP_NETTIMESTAMP);
-					for (auto & n : net_node->GetSubnodes()) {
-						SafePointer<RegistryNode> node_node = net_node->OpenNode(n);
-						NodeDesc node_desc;
-						node_desc.known_name = node_node->GetValueString(ECF_CP_NODENAME);
-						RegistryReadBinary(node_node, ECF_CP_NODEUUID, node_desc.uuid);
-						RegistryReadBinary(node_node, ECF_CP_NODEECFADDRESS, node_desc.ecf_address);
-						RegistryReadBinary(node_node, ECF_CP_NODEIPADDRESS, node_desc.ip_address);
-						node_desc.ip_port = node_node->GetValueInteger(ECF_CP_NODEIPPORT);
-						node_desc.online = false;
-						net_desc.nodes << node_desc;
-					}
+					NetDesc net_desc = DeserializeNetDesc(net_node);
 					known_nets << net_desc;
 				}
 			} catch (...) {}
@@ -419,26 +722,7 @@ namespace Engine
 						auto net_reg_name = string(uint(i + 1), HexadecimalBase, 4);
 						config->CreateNode(net_reg_name);
 						SafePointer<RegistryNode> net_reg = config->OpenNode(net_reg_name);
-						net_reg->CreateValue(ECF_CP_NETNAME, RegistryValueType::String);
-						net_reg->SetValue(ECF_CP_NETNAME, net.name);
-						RegistryWriteBinary(net_reg, ECF_CP_NETUUID, net.uuid);
-						net_reg->CreateValue(ECF_CP_NETAUTOCONNECT, RegistryValueType::Boolean);
-						net_reg->SetValue(ECF_CP_NETAUTOCONNECT, net.autoconnect);
-						net_reg->CreateValue(ECF_CP_NETTIMESTAMP, RegistryValueType::Time);
-						net_reg->SetValue(ECF_CP_NETTIMESTAMP, net.desc_time);
-						for (int j = 0; j < net.nodes.Length(); j++) {
-							auto & node = net.nodes[j];
-							auto node_reg_name = string(uint(j + 1), HexadecimalBase, 4);
-							net_reg->CreateNode(node_reg_name);
-							SafePointer<RegistryNode> node_reg = net_reg->OpenNode(node_reg_name);
-							node_reg->CreateValue(ECF_CP_NODENAME, RegistryValueType::String);
-							node_reg->SetValue(ECF_CP_NODENAME, node.known_name);
-							RegistryWriteBinary(node_reg, ECF_CP_NODEUUID, node.uuid);
-							RegistryWriteBinary(node_reg, ECF_CP_NODEECFADDRESS, node.ecf_address);
-							RegistryWriteBinary(node_reg, ECF_CP_NODEIPADDRESS, node.ip_address);
-							node_reg->CreateValue(ECF_CP_NODEIPPORT, RegistryValueType::Integer);
-							node_reg->SetValue(ECF_CP_NODEIPPORT, node.ip_port);
-						}
+						SerializeNetDesc(net_reg, net);
 					}
 					config->Save(config_stream);
 				} catch (...) {}
@@ -564,13 +848,20 @@ namespace Engine
 				return true;
 			} else return false;
 		}
-		void ServerNetJoin(Network::Address to, uint16 port_to, uint16 port_from)
+		void ServerNetJoin(const string & to, uint16 port_to, uint16 port_from, IDispatchTask * on_success, IDispatchTask * on_fail)
 		{
-			// TODO: IMPLEMENT
-		}
-		void ServerNetLeave(void)
-		{
-			// TODO: IMPLEMENT
+			if (net_status) { on_fail->DoTask(0); return; }
+			auto req = new (std::nothrow) JoinNetRequest;
+			if (!req) { on_fail->DoTask(0); return; }
+			try {
+				req->address_notation = to;
+				req->port_to = port_to;
+				req->port_my = port_from;
+				req->on_success.SetRetain(on_success);
+				req->on_fail.SetRetain(on_fail);
+			} catch (...) { delete req; on_fail->DoTask(0); return; }
+			SafePointer<Thread> thread = CreateThread(JoinThread, req);
+			if (!thread) { delete req; on_fail->DoTask(0); return; }
 		}
 		void ServerNetForget(const UUID * uuid)
 		{
@@ -579,6 +870,7 @@ namespace Engine
 				for (int i = 0; i < known_nets.Length(); i++) {
 					if (MemoryCompare(uuid, &known_nets[i].uuid, sizeof(UUID)) == 0) {
 						known_nets.Remove(i);
+						for (auto & cb : event_callbacks) cb->NetLeft(uuid);
 						config_alternated = true;
 						break;
 					}
@@ -586,10 +878,40 @@ namespace Engine
 			}
 			net_sync->Open();
 		}
-		bool ServerNetNodeRemove(ObjectAddress node)
+		void ServerNetNodeRemove(ObjectAddress node)
 		{
-			// TODO: IMPLEMENT
-			return false;
+			if (net_status == 1) {
+				SafePointer<DataBlock> data;
+				NetDesc * current_net = 0;
+				net_sync->Wait();
+				try {
+					for (auto & n : known_nets) if (MemoryCompare(&n.uuid, &net_uuid, sizeof(UUID)) == 0) {
+						current_net = &n;
+						data = SerializeNetDesc(n);
+						break;
+					}
+				} catch (...) { net_sync->Open(); return; }
+				net_sync->Open();
+				if (!data) return;
+				try {
+					auto net_edit = DeserializeNetDesc(data);
+					bool edited = false;
+					for (int i = 0; i < net_edit.nodes.Length(); i++) {
+						if (net_edit.nodes[i].ecf_address == node) {
+							net_edit.nodes.Remove(i);
+							edited = true;
+							break;
+						}
+					}
+					if (edited) {
+						net_edit.desc_time = Time::GetCurrentTime();
+						data = SerializeNetDesc(net_edit);
+						InternalSendMessage(0x00000103, self_addr, MakeObjectAddress(AddressLevelNode,
+							AddressServiceNode, AddressNodeUndefined, AddressInstanceUnique), data);
+						UpdateNetNodesWithNet(current_net, &net_edit);
+					}
+				} catch (...) {}
+			}
 		}
 
 		Array<UUID> * ServerEnumerateKnownNets(void)

@@ -16,14 +16,30 @@ resource texture IconConnectNet { & "artwork/button_connect_net.eiwv" }
 resource texture IconConnectNetI { & "artwork/button_connect_net.eiwv" BlindGrayscale }
 resource texture IconDisconnectNet { & "artwork/button_disconnect_net.eiwv" }
 resource texture IconDisconnectNetI { & "artwork/button_disconnect_net.eiwv" BlindGrayscale }
+resource texture IconAllowJoinNet { & "artwork/button_allow_join_net.eiwv" }
+resource texture IconAllowJoinNetI { & "artwork/button_allow_join_net.eiwv" BlindGrayscale }
+resource texture IconLeaveNet { & "artwork/button_leave_net.eiwv" }
+resource texture IconLeaveNetI { & "artwork/button_leave_net.eiwv" BlindGrayscale }
 
+resource string TextAllowJoinConfirmation [ _ ru ] {
+	"Do you want to allow an another server to join the current net?"
+	"Вы желаете разрешить другому серверу присоединиться к этой сети?"
+}
 resource string TextFailedToConnect [ _ ru ] {
 	"The server failed to launch network services required to connect to the net."
 	"Серверу не удалось запустить сетевые службы, необходимые для подключения к сети."
 }
+resource string TextFailedToJoin [ _ ru ] {
+	"The server failed to join a net with the addresses and ports specified."
+	"Серверу не удалось присоединиться к сети по указанным адресу и портам."
+}
 resource string TextNetForgetConfirmation [ _ ru ] {
 	"Do you shurely want to forget this net unilaterally?"
 	"Вы действительно желаете забыть эту сеть в одностороннем порядке?"
+}
+resource string TextNodeRemoveConfirmation [ _ ru ] {
+	"Do you shurely want to remove this node from this net?"
+	"Вы действительно желаете исключить этот узел из данной сети?"
 }
 resource string TextNetCannotForgetActiveNet [ _ ru ] {
 	"The active net cannot be forgotten. Disconnect in order to forget it."
@@ -41,12 +57,22 @@ resource string TextUniqueNetName [ _ ru ] {
 	"Unique net name"
 	"Уникальное имя сети"
 }
+resource string TextConnectToNode [ _ ru ] {
+	"A node address to join:"
+	"Адрес узла, к которому надо присоединиться:"
+}
+resource string TextConnectSelfPort [ _ ru ] {
+	"An address of this node in the net:"
+	"Адрес этого узла в этой сети:"
+}
 resource string TextName [ _ ru ] { "Name:" "Имя:" }
 resource string TextUUID [ _ ru ] { "UUID:" "UUID:" }
+resource string TextIP [ _ ru ] { "IP:" "IP:" }
 resource string TextPort [ _ ru ] { "Port:" "Порт:" }
 resource string TextCancel [ _ ru ] { "Cancel" "Отмена" }
 resource string TextSelect [ _ ru ] { "Select" "Выбрать" }
 resource string TextCreate [ _ ru ] { "Create" "Создать" }
+resource string TextJoin [ _ ru ] { "Join" "Войти" }
 resource string TextHelp [ _ ru ] { "Help" "Вызов справки" }
 resource string TextAbout [ _ ru ] { "About" "О программе" }
 resource string TextNets [ _ ru ] { "Nets" "Сети" }
@@ -57,6 +83,7 @@ resource string TextNameNS [ _ ru ] { "Name" "Имя" }
 resource string TextUUIDNS [ _ ru ] { "UUID" "UUID" }
 resource string TextA [ _ ru ] { "A" "A" }
 resource string TextNewNetCreation [ _ ru ] { "Creating a new net" "Создание новой сети" }
+resource string TextJoinNet [ _ ru ] { "Join a net" "Присоединение к сети" }
 
 dialog SelfSetup {
 	DialogFrame {
@@ -92,6 +119,26 @@ dialog NewNetSetup {
 		}
 		Button { position { z 5, z 114, z 105, z 142 } Text TextCancel ID 2 }
 		Button { position { w 1 z -105, z 114, w 1 z -5, z 142 } Text TextCreate ID 1 }
+	}
+}
+dialog JoinNetSetup {
+	DialogFrame {
+		position { 0, 0, z 420, z 213 }
+		Captioned Title TextJoinNet CloseButton
+		ControlGroup {
+			style WaffleFrame
+			position { z 5, z 5, w 1 z -5, z 175 }
+			Static { position { z 5, z 5, w 1 z -5, z 33 } Text TextConnectToNode }
+			Static { position { z 5, z 38, z 65, z 66 } Text TextIP }
+			Edit { position { z 65, z 38, w 1 z -5, z 66 } ID 101 }
+			Static { position { z 5, z 71, z 65, z 99 } Text TextPort }
+			Edit { position { z 65, z 71, w 1 z -5, z 99 } ID 102 CharactersEnabled "0123456789" }
+			Static { position { z 5, z 104, w 1 z -5, z 132 } Text TextConnectSelfPort }
+			Static { position { z 5, z 137, z 65, z 165 } Text TextPort }
+			Edit { position { z 65, z 137, w 1 z -5, z 165 } ID 103 CharactersEnabled "0123456789" }
+		}
+		Button { position { z 5, z 180, z 105, z 208 } Text TextCancel ID 2 }
+		Button { position { w 1 z -105, z 180, w 1 z -5, z 208 } Text TextJoin ID 1 }
 	}
 }
 
@@ -220,8 +267,14 @@ dialog Main {
 						position { w 1 z -33, z 38, w 1 z -5, z 66 }
 						ImageNormal IconDisconnectNet ImageGrayed IconDisconnectNetI ID 203
 					}
-
-					// TODO: IMPLEMENT
+					Button {
+						position { w 1 z -33, z 71, w 1 z -5, z 99 }
+						ImageNormal IconAllowJoinNet ImageGrayed IconAllowJoinNetI ID 204
+					}
+					Button {
+						position { w 1 z -33, z 104, w 1 z -5, z 132 }
+						ImageNormal IconLeaveNet ImageGrayed IconLeaveNetI ID 205
+					}
 				}
 			}
 		}

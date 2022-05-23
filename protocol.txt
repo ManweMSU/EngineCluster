@@ -1,6 +1,6 @@
 HANDSHAKE-AUTHORIZATION PACKET
-'ECLFAUTH' OBJECT_TYPE CUSTOM_SERVICE_ID CUSTOM_SERVICE_NAME NODE_GUID NET_GUID
-\--------/ \---------/ \---------------/ \-----------------/ \----------------/
+'ECLFAUTH' OBJECT_TYPE CUSTOM_SERVICE_ID CUSTOM_SERVICE_NAME NODE_GUID TARGET_NODE_GUID
+\--------/ \---------/ \---------------/ \-----------------/ \------------------------/
   8 bytes    4 bytes        YY bytes           XXX bytes      16x2 bytes if type is node
 
 OBJECT_TYPE:
@@ -56,22 +56,23 @@ SERVER TO SERVER ONLY
   0000 0101 - server net node join
   0001 0101 - server net node join responce
   0000 0102 - server net node connect
-  0001 0102 - server net node connect responce
   0000 0103 - server net update node list
-TO SERVER
+TO SERVER (STATUS API)
   0000 0201 - enumerate nodes
   0001 0201 - node enumeration responce
   0000 0202 - enumerate service instances
   0001 0202 - service enumeration responce
   0000 0203 - node status request
   0001 0203 - node status responce
-  0000 0204 - node launch host
-  0001 0204 - launch host responce
-  0000 0205 - kill current host
 TO SERVER AND TEXT LOGGER
   0000 0301 - log text notification (primary)
   0000 0302 - log text notification (broadcast)
   0000 0303 - log text notification (client)
+COMPUTATION MESSAGES
+TO SERVER
+  0000 0204 - node launch host
+  0001 0204 - launch host responce
+  0000 0205 - kill current host
 TO HOST
   0000 0401 - schedule task
   0000 0402 - report queue status
