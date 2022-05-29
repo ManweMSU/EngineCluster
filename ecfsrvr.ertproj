@@ -8,6 +8,7 @@ CompileList {
 	AAAAAA = "ecfsrvr.cxx"
 	AAAAAB = "ecfsrvr.uiml"
 	AAAAAC = "srvrnet.cxx"
+	AAAAAD = "srvrsrvc.cxx"
 }
 Resources {
 	COM = "@com_en.ecst"

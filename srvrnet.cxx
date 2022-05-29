@@ -978,5 +978,12 @@ namespace Engine
 			if (net_status == 1) return InternalSendMessage(verb, self_addr, to, payload);
 			else return false;
 		}
+
+		Array<EndpointDesc> * ServerEnumerateServices(const string & service_id)
+		{
+			// TODO: IMPLEMENT
+			return 0;
+		}
+		ObjectAddress GetLoopbackAddress(void) { return self_addr; }
 	}
 }

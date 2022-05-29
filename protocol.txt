@@ -62,24 +62,26 @@ TO SERVER (STATUS API)
   0001 0201 - node enumeration responce
   0000 0202 - enumerate service instances
   0001 0202 - service enumeration responce
-  0000 0203 - node status request
-  0001 0203 - node status responce
+  0000 0203 - node status notify
+  0000 0204 - node info request
+  0001 0204 - node info responce
+  0000 0205 - node control request
 TO SERVER AND TEXT LOGGER
   0000 0301 - log text notification (primary)
   0000 0302 - log text notification (broadcast)
   0000 0303 - log text notification (client)
 COMPUTATION MESSAGES
 TO SERVER
-  0000 0204 - node launch host
-  0001 0204 - launch host responce
-  0000 0205 - kill current host
+  0000 0404 - node launch host
+  0001 0404 - launch host responce
+  0000 0405 - kill current host
 TO HOST
-  0000 0401 - schedule task
-  0000 0402 - report queue status
-  0001 0402 - queue status responce
-  0000 0403 - terminate
+  0000 0411 - schedule task
+  0000 0412 - report queue status
+  0001 0412 - queue status responce
+  0000 0413 - terminate
 TO JOB CLIENT
-  0000 0501 - work finished responce and status
+  0000 0421 - work finished responce and status
 
 USER SPACE VERBS
   8XXX XXXX

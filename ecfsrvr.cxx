@@ -1,6 +1,7 @@
 #include <EngineRuntime.h>
 
 #include "srvrnet.h"
+#include "srvrsrvc.h"
 
 #define ECF_IPC_VERB_ACTIVATE	L"ACTIVATE"
 #define ECF_IPC_VERB_GETPORT	L"PORT"
@@ -13,7 +14,7 @@ using namespace Engine::Streaming;
 using namespace Engine::Cluster;
 
 Array<IWindow *> windows(0x10);
-ITexture * greenlight, * graylight;
+ITexture * greenlight, * graylight, * power_self, * power_charging, * power_discharging, * power_net;
 IWindow * main_window;
 uint window_visibility_counter;
 uint modal_counter;
@@ -260,13 +261,113 @@ public:
 		CreateModalWindow(interface.Dialog[L"JoinNetSetup"], callback, Rectangle::Entire(), parent);
 	}
 };
+class ShowNodeInfoCallback : public IEventCallback
+{
+	ObjectAddress _address;
+	NodeSystemInfo _info;
+	ENGINE_REFLECTED_CLASS(_list_element, Reflection::Reflected)
+		ENGINE_DEFINE_REFLECTED_PROPERTY(STRING, Property);
+		ENGINE_DEFINE_REFLECTED_PROPERTY(STRING, Value);
+	ENGINE_END_REFLECTED_CLASS
+	void _add_list_item(Controls::ListView * view, const string & prop, const string & value)
+	{
+		_list_element element;
+		element.Property = prop;
+		element.Value = value;
+		view->AddItem(element);
+	}
+public:
+	virtual void Created(IWindow * window) override
+	{
+		InterlockedIncrement(modal_counter);
+		GetRootControl(window)->AddDialogStandardAccelerators();
+		auto list = FindControl(window, 101)->As<Controls::ListView>();
+		_add_list_item(list, *interface.Strings[L"TextNodeName"], _info.NodeName);
+		_add_list_item(list, *interface.Strings[L"TextNodeAddress"], string(_address, HexadecimalBase, 16));
+		_add_list_item(list, *interface.Strings[L"TextUUIDNS"], MakeStringOfUUID(&_info.Identifier));
+		if (_info.System == OperatingSystem::Windows) {
+			_add_list_item(list, *interface.Strings[L"TextOS"], *interface.Strings[L"TextWindowsOS"]);
+		} else if (_info.System == OperatingSystem::MacOS) {
+			_add_list_item(list, *interface.Strings[L"TextOS"], *interface.Strings[L"TextMacOS"]);
+		} else {
+			_add_list_item(list, *interface.Strings[L"TextOS"], *interface.Strings[L"TextUnknown"]);
+		}
+		_add_list_item(list, *interface.Strings[L"TextVersionOS"], FormatString(L"%0.%1", _info.SystemVersionMajor, _info.SystemVersionMinor));
+		_add_list_item(list, *interface.Strings[L"TextMemory"], FormatString(*interface.Strings[L"TextMemoryStringMB"], _info.PhysicalMemory / 0x100000));
+		_add_list_item(list, *interface.Strings[L"TextNameCPU"], _info.ProcessorName);
+		if (_info.Architecture == Platform::X86) {
+			_add_list_item(list, *interface.Strings[L"TextArchCPU"], *interface.Strings[L"TextArchX86"]);
+		} else if (_info.Architecture == Platform::X64) {
+			_add_list_item(list, *interface.Strings[L"TextArchCPU"], *interface.Strings[L"TextArchX64"]);
+		} else if (_info.Architecture == Platform::ARM) {
+			_add_list_item(list, *interface.Strings[L"TextArchCPU"], *interface.Strings[L"TextArchARM"]);
+		} else if (_info.Architecture == Platform::ARM64) {
+			_add_list_item(list, *interface.Strings[L"TextArchCPU"], *interface.Strings[L"TextArchARM64"]);
+		} else {
+			_add_list_item(list, *interface.Strings[L"TextArchCPU"], *interface.Strings[L"TextUnknown"]);
+		}
+		string ghz = string(_info.ClockFrequency / 1000000000UL);
+		string mhz = string(_info.ClockFrequency % 1000000000UL / 100000000UL);
+		_add_list_item(list, *interface.Strings[L"TextClockCPU"], FormatString(*interface.Strings[L"TextClockCPUHZ"], ghz, mhz));
+		_add_list_item(list, *interface.Strings[L"TextCoresPhysical"], _info.PhysicalCores);
+		_add_list_item(list, *interface.Strings[L"TextCoresVirtual"], _info.VirtualCores);
+	}
+	virtual void Destroyed(IWindow * window) override { InterlockedDecrement(modal_counter); delete this; }
+	virtual void WindowClose(IWindow * window) override { HandleControlEvent(window, 2, ControlEvent::AcceleratorCommand, 0); }
+	virtual void HandleControlEvent(Windows::IWindow * window, int ID, ControlEvent event, Control * sender) override
+	{
+		if (ID == 1 || ID == 2) GetWindowSystem()->ExitModalSession(window);
+	}
+	static void ShowNodeInfoDialog(IWindow * parent, ObjectAddress address, const NodeSystemInfo & info)
+	{
+		auto callback = new ShowNodeInfoCallback;
+		callback->_info = info;
+		callback->_address = address;
+		CreateModalWindow(interface.Dialog[L"ShowNodeInfo"], callback, Rectangle::Entire(), parent);
+	}
+};
 
-class ServerPanelCallback : public IEventCallback, public IServerEventCallback
+class ServerPanelCallback : public IEventCallback, public IServerEventCallback, public IServerServiceNotificationCallback
 {
 	Array<UUID> _nets;
 	Array<ObjectAddress> _nodes;
+	Dictionary::PlainDictionary<ObjectAddress, NodeStatusInfo> _statuses;
+	SafePointer<Windows::IMenu> _menu;
 public:
-	ServerPanelCallback(void) : _nets(0x10), _nodes(0x10) {}
+	ServerPanelCallback(void) : _nets(0x10), _nodes(0x10), _statuses(0x10) {}
+	void FillNodeElement(Structures::NodeElement & element, const NodeDesc & node)
+	{
+		element.Greenlight.SetRetain(node.online ? greenlight : graylight);
+		element.Name = node.known_name;
+		auto sd = _statuses[node.ecf_address];
+		if (sd && node.online) {
+			if (sd->ProgressTotal) {
+				element.Load = FormatString(*interface.Strings[L"TextReady"], sd->ProgressComplete * 100 / sd->ProgressTotal);
+			} else {
+				element.Load = *interface.Strings[L"TextIdle"];
+			}
+			if (sd->Battery == Power::BatteryStatus::Charging || sd->Battery == Power::BatteryStatus::InUse) {
+				element.PowerLevel = string((sd->BatteryLevel + 5) / 10) + L"%";
+			} else {
+				element.PowerLevel = L"";
+			}
+			if (node.ecf_address == GetLoopbackAddress()) {
+				element.PowerSource.SetRetain(power_self);
+			} else if (sd->Battery == Power::BatteryStatus::Charging) {
+				element.PowerSource.SetRetain(power_charging);
+			} else if (sd->Battery == Power::BatteryStatus::InUse) {
+				element.PowerSource.SetRetain(power_discharging);
+			} else {
+				element.PowerSource.SetRetain(power_net);
+			}
+		} else {
+			if (node.online) {
+				element.Load = *interface.Strings[L"TextUnknown"];
+			} else {
+				element.Load = L"";
+			}
+		}
+	}
 	void UpdateNetList(IWindow * window)
 	{
 		auto list = FindControl(window, 101)->As<Controls::ListView>();
@@ -321,17 +422,7 @@ public:
 			if (nodes) for (int i = 0; i < nodes->Length(); i++) {
 				auto & node = nodes->ElementAt(i);
 				Structures::NodeElement element;
-				element.Greenlight.SetRetain(node.online ? greenlight : graylight);
-				element.Name = node.known_name;
-
-				// TODO: IMPLEMENT
-
-				element.PowerSource.SetRetain(graylight);
-				element.PowerLevel = L"N/D";
-				element.Load = L"N/D";
-
-				// TODO: END IMPLEMENT
-
+				FillNodeElement(element, node);
 				node_list->AddItem(element);
 				_nodes << node.ecf_address;
 				if (node_selected == node.ecf_address) node_list->SetSelectedIndex(i);
@@ -355,10 +446,12 @@ public:
 	}
 	virtual void Created(IWindow * window) override
 	{
+		_menu = CreateMenu(interface.Dialog[L"NodeContextMenu"]);
 		UUID current_net;
 		if (!GetServerCurrentNet(&current_net)) ZeroMemory(&current_net, sizeof(current_net));
 		RegisterWindow(window);
 		RegisterServerEventCallback(this);
+		ServerServiceRegisterCallback(this);
 		main_window = window;
 		GetRootControl(window)->GetAcceleratorTable() << Accelerators::AcceleratorCommand(1, KeyCodes::F1, false);
 		UpdateNetList(window);
@@ -370,6 +463,7 @@ public:
 	{
 		UnregisterWindow(window);
 		UnregisterServerEventCallback(this);
+		ServerServiceUnregisterCallback(this);
 		main_window = 0;
 	}
 	virtual void WindowClose(IWindow * window) override { HideWindow(window); }
@@ -457,7 +551,10 @@ public:
 			if (event == ControlEvent::ValueChange) {
 				UpdateNodeButtons(window);
 			} else if (event == ControlEvent::ContextClick) {
-				// TODO: IMPLEMENT
+				auto at = GetWindowSystem()->GetCursorPosition();
+				at = window->PointGlobalToClient(at);
+				at = GetControlSystem(window)->ConvertClientToControl(GetRootControl(window), at);
+				RunMenu(_menu, GetRootControl(window), at);
 			}
 		} else if (ID == 204) {
 			auto task = CreateStructuredTask<MessageBoxResult>([](MessageBoxResult result) {
@@ -477,11 +574,48 @@ public:
 				GetWindowSystem()->MessageBox(&task->Value1, *interface.Strings[L"TextNodeRemoveConfirmation"], ENGINE_VI_APPNAME,
 					window, MessageBoxButtonSet::YesNo, MessageBoxStyle::Warning, task);
 			}
+		} else if (ID == 301) {
+			auto list = FindControl(window, 201)->As<Controls::ListView>();
+			auto index = list->GetSelectedIndex();
+			if (index >= 0) ServerServiceSendServicesRequest(_nodes[index]);
+		} else if (ID == 302) {
+			auto list = FindControl(window, 201)->As<Controls::ListView>();
+			auto index = list->GetSelectedIndex();
+			if (index >= 0) ServerServiceSendInformationRequest(_nodes[index]);
+		} else if (ID == 303) {
+			// TODO: IMPLEMENT
+		} else if (ID == 304) {
+			auto list = FindControl(window, 201)->As<Controls::ListView>();
+			auto index = list->GetSelectedIndex();
+			if (index >= 0) ServerServiceSendControlMessage(_nodes[index], ServerControlShutdownSoftware);
+		} else if (ID == 305) {
+			auto list = FindControl(window, 201)->As<Controls::ListView>();
+			auto index = list->GetSelectedIndex();
+			if (index >= 0) ServerServiceSendControlMessage(_nodes[index], ServerControlShutdownPC);
+		} else if (ID == 306) {
+			auto list = FindControl(window, 201)->As<Controls::ListView>();
+			auto index = list->GetSelectedIndex();
+			if (index >= 0) ServerServiceSendControlMessage(_nodes[index], ServerControlRestartPC);
+		} else if (ID == 307) {
+			auto list = FindControl(window, 201)->As<Controls::ListView>();
+			auto index = list->GetSelectedIndex();
+			if (index >= 0) ServerServiceSendControlMessage(_nodes[index], ServerControlLogoutPC);
+		} else if (ID == 308) {
+			auto list = FindControl(window, 201)->As<Controls::ListView>();
+			auto index = list->GetSelectedIndex();
+			if (index >= 0) ServerServiceSendControlMessage(_nodes[index], ServerControlHybernatePC);
 		}
 		// TODO: IMPLEMENT PAGE 2
-		// TODO: TIER 4 (STATUS API)
-		// TODO: IMPLEMENT
-		// TODO: ICON (SHADOW IS ALPHA=0,5, BLUR=UNIFORM-2/1/1)
+		// TODO: TIER 5 (STATUS API)
+		// endpoint registration and routing
+		// 0000 0201 - enumerate nodes
+		// 0001 0201 - node enumeration responce
+		// 0000 0202 - enumerate service instances
+		// 0001 0202 - service enumeration responce
+		// TODO: TIER 6 (LOGGER API)
+		// 0000 0301 - log text notification (primary)
+		// 0000 0302 - log text notification (broadcast)
+		// 0000 0303 - log text notification (client)
 	}
 	void OnNetStatusUpdated(void)
 	{
@@ -498,6 +632,51 @@ public:
 			UpdateNetNodes(main_window);
 			UpdateNodeButtons(main_window);
 		}
+	}
+	void UpdateProgressState(void)
+	{
+		if (!main_window) return;
+		uint com = 0, tot = 0;
+		for (auto & v : _statuses.Elements()) { com += v.value.ProgressComplete; tot += v.value.ProgressTotal; }
+		if (tot) {
+			main_window->SetProgressValue(double(com) / double(tot));
+			main_window->SetProgressMode(ProgressDisplayMode::Normal);
+			GetWindowSystem()->SetApplicationBadge(string(com * 100 / tot) + L"%");
+		} else {
+			main_window->SetProgressMode(ProgressDisplayMode::Hide);
+			GetWindowSystem()->SetApplicationBadge(L"");
+		}
+	}
+	void SetNodeStatus(ObjectAddress address, const NodeStatusInfo & status)
+	{
+		if (!main_window) return;
+		auto sent = _statuses.ElementByKey(address);
+		if (sent) *sent = status; else _statuses.Append(address, status);
+		auto list = FindControl(main_window, 101)->As<Controls::ListView>();
+		auto index = list->GetSelectedIndex();
+		UUID current_uuid, selected_uuid;
+		auto connected = GetServerCurrentNet(&current_uuid);
+		if (index >= 0) selected_uuid = _nets[index]; else ZeroMemory(&selected_uuid, sizeof(UUID));
+		if (MemoryCompare(&selected_uuid, &current_uuid, sizeof(UUID)) == 0) {
+			for (int i = 0; i < _nodes.Length(); i++) if (_nodes[i] == address) {
+				SafePointer< Array<NodeDesc> > nodes = ServerEnumerateNetNodes(&current_uuid);
+				NodeDesc * node_ptr = 0;
+				for (auto & n : *nodes) if (n.ecf_address == address) { node_ptr = &n; break; }
+				if (node_ptr) {
+					Structures::NodeElement element;
+					FillNodeElement(element, *node_ptr);
+					auto list = FindControl(main_window, 201)->As<Controls::ListView>();
+					if (list->ItemCount() > i) list->ResetItem(i, element);
+				}
+			}
+		}
+		UpdateProgressState();
+	}
+	void ClearNodeStatuses(void) { _statuses.Clear(); UpdateProgressState(); }
+	void ShowSystemInfo(ObjectAddress from, const NodeSystemInfo & info)
+	{
+		if (!main_window || modal_counter || !main_window->IsVisible()) return;
+		ShowNodeInfoCallback::ShowNodeInfoDialog(main_window, from, info);
 	}
 	virtual void SwitchedToNet(const UUID * uuid) override
 	{
@@ -525,7 +704,10 @@ public:
 	virtual void SwitchedFromNet(const UUID * uuid) override
 	{
 		auto self = this;
-		GetWindowSystem()->SubmitTask(CreateFunctionalTask([self]() { self->OnNetStatusUpdated(); }));
+		GetWindowSystem()->SubmitTask(CreateFunctionalTask([self]() {
+			self->OnNetStatusUpdated();
+			self->ClearNodeStatuses();
+		}));
 	}
 	virtual void NodeConnected(ObjectAddress node) override
 	{
@@ -552,6 +734,45 @@ public:
 	{
 		auto self = this;
 		GetWindowSystem()->SubmitTask(CreateFunctionalTask([self]() { self->OnNetStatusUpdated(); }));
+	}
+	virtual void ProcessServicesList(ObjectAddress from, const Array<EndpointDesc> & endpoints) override
+	{
+		// TODO: IMPLEMENT
+	}
+	virtual void ProcessNodeSystemInfo(ObjectAddress from, const NodeSystemInfo & info) override
+	{
+		auto self = this;
+		auto addr = from;
+		auto si = info;
+		GetWindowSystem()->SubmitTask(CreateFunctionalTask([self, addr, si]() { self->ShowSystemInfo(addr, si); }));
+	}
+	virtual void ProcessNodeStatusInfo(ObjectAddress from, const NodeStatusInfo & info) override
+	{
+		auto self = this;
+		auto addr = from;
+		auto si = info;
+		GetWindowSystem()->SubmitTask(CreateFunctionalTask([self, addr, si]() { self->SetNodeStatus(addr, si); }));
+	}
+	virtual void ProcessControlMessage(ObjectAddress from, uint control_verb) override
+	{
+		if (control_verb & ServerControlShutdownSoftware) {
+			GetWindowSystem()->SubmitTask(CreateFunctionalTask([]() {
+				auto callback = GetWindowSystem()->GetCallback();
+				if (callback) callback->Terminate();
+			}));
+		}
+		if (control_verb & ServerControlShutdownPC) {
+			GetWindowSystem()->SubmitTask(CreateFunctionalTask([]() { Power::ExitSystem(Power::Exit::Shutdown); }));
+		}
+		if (control_verb & ServerControlRestartPC) {
+			GetWindowSystem()->SubmitTask(CreateFunctionalTask([]() { Power::ExitSystem(Power::Exit::Reboot); }));
+		}
+		if (control_verb & ServerControlLogoutPC) {
+			GetWindowSystem()->SubmitTask(CreateFunctionalTask([]() { Power::ExitSystem(Power::Exit::Logout); }));
+		}
+		if (control_verb & ServerControlHybernatePC) {
+			GetWindowSystem()->SubmitTask(CreateFunctionalTask([]() { Power::SuspendSystem(true); }));
+		}
 	}
 };
 
@@ -645,6 +866,10 @@ int Main(void)
 		Loader::LoadUserInterfaceFromBinary(interface, ui);
 		greenlight = interface.Texture[L"IconGreenlight"];
 		graylight = interface.Texture[L"IconGreenlightI"];
+		power_self = interface.Texture[L"IconPowerSelf"];
+		power_charging = interface.Texture[L"IconPowerCharging"];
+		power_discharging = interface.Texture[L"IconPowerDischarging"];
+		power_net = interface.Texture[L"IconPowerNet"];
 	}
 	GetWindowSystem()->SetCallback(&main_callback);
 	// {
@@ -658,6 +883,7 @@ int Main(void)
 	if (!GetServerName().Length()) {
 		if (!ServerSetupCallback::RunSetup()) return 0;
 	}
+	ServerServiceInitialize();
 	CreateWindow(interface.Dialog[L"Main"], &panel_callback, Rectangle::Entire());
 	
 	// TODO: REGISTER CALLBACKS:
@@ -677,5 +903,6 @@ int Main(void)
 	status_icon->PresentIcon(false);
 	status_icon.SetReference(0);
 	ServerShutdown();
+	ServerServiceShutdown();
 	return 0;
 }

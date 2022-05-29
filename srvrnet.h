@@ -38,6 +38,12 @@ namespace Engine
 			bool autoconnect;
 			SafeArray<NodeDesc> nodes = SafeArray<NodeDesc>(0x10);
 		};
+		struct EndpointDesc
+		{
+			ObjectAddress address;
+			string service_id;
+			string service_name;
+		};
 
 		class IServerEventCallback
 		{
@@ -106,5 +112,8 @@ namespace Engine
 		void RegisterServerMessageCallback(IServerMessageCallback * callback);
 		void UnregisterServerMessageCallback(IServerMessageCallback * callback);
 		bool ServerSendMessage(uint32 verb, ObjectAddress to, const DataBlock * payload);
+
+		Array<EndpointDesc> * ServerEnumerateServices(const string & service_id);
+		ObjectAddress GetLoopbackAddress(void);
 	}
 }
