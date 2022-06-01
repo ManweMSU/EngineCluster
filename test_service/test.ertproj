@@ -1,6 +1,0 @@
-﻿ForcedArch = "x86"
-OutputLocation = "_build"
-CompileList {
-	AAAAAA = "test.cxx"
-	AAAAAB = "../client/ClusterClient.cxx"
-}

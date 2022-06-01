@@ -290,9 +290,10 @@ namespace Engine
 						for (auto & cb : callbacks) cb->ProcessControlMessage(from, verb);
 						sync->Open();
 					} else if (verb == 0x00000301) {
-						// TODO: IMPLEMENT
+						ServerSendMessage(0x00000302, MakeObjectAddress(AddressLevelNode, AddressServiceNode, AddressNodeUndefined, AddressInstanceUnique), data);
+						ServerSendMessage(0x00000303, MakeObjectAddress(AddressLevelClient, AddressServiceTextLogger, GetAddressNode(GetLoopbackAddress()), AddressInstanceUnique), data);
 					} else if (verb == 0x00000302) {
-						// TODO: IMPLEMENT
+						ServerSendMessage(0x00000303, MakeObjectAddress(AddressLevelClient, AddressServiceTextLogger, GetAddressNode(GetLoopbackAddress()), AddressInstanceUnique), data);
 					}
 				} catch (...) {}
 			}

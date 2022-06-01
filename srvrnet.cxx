@@ -223,14 +223,23 @@ namespace Engine
 							break;
 						}
 					} else {
-						for (auto & c : clients) if (c.address == to) {
-							if (c.socket) {
-								try {
-									InternalSendMessage(c.socket, verb, from, to, payload);
-									status = true;
-								} catch (...) {}
+						if (GetAddressInstance(to)) {
+							for (auto & c : clients) if (c.address == to) {
+								if (c.socket) {
+									try {
+										InternalSendMessage(c.socket, verb, from, to, payload);
+										status = true;
+									} catch (...) {}
+								}
+								break;
 							}
-							break;
+						} else {
+							status = true;
+							for (auto & c : clients) if (GetAddressService(c.address) == GetAddressService(to) && c.socket) {
+								try {
+									InternalSendMessage(c.socket, verb, from, c.address, payload);
+								} catch (...) { status = false; }
+							}
 						}
 					}
 				}

@@ -642,10 +642,6 @@ public:
 			if (index >= 0) ServerServiceSendControlMessage(_nodes[index], ServerControlHybernatePC);
 		}
 		// TODO: IMPLEMENT PAGE 2
-		// TODO: TIER 6 (LOGGER API)
-		// 0000 0301 - log text notification (primary)
-		// 0000 0302 - log text notification (broadcast)
-		// 0000 0303 - log text notification (client)
 		// TODO: TIER 7 (COMPUTATION API)
 	}
 	void OnNetStatusUpdated(void)
@@ -926,7 +922,6 @@ int Main(void)
 	CreateWindow(interface.Dialog[L"Main"], &panel_callback, Rectangle::Entire());
 	
 	// TODO: REGISTER CALLBACKS:
-	//   TEXT LOGGER API MESSAGE HANDLERS
 	//   COMPUTATION API MESSAGE AND EVENT HANDLERS
 
 	status_icon = GetWindowSystem()->CreateStatusBarIcon();
