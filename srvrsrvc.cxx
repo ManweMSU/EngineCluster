@@ -33,6 +33,14 @@ namespace Engine
 			ENGINE_REFLECTED_CLASS(NodeEndpointsStruct, Reflection::Reflected)
 				ENGINE_DEFINE_REFLECTED_GENERIC_ARRAY(NodeEndpointStruct, endpoints);
 			ENGINE_END_REFLECTED_CLASS
+			ENGINE_REFLECTED_CLASS(NodeStruct, Reflection::Reflected)
+				ENGINE_DEFINE_REFLECTED_PROPERTY(UINT64, address);
+				ENGINE_DEFINE_REFLECTED_PROPERTY(STRING, name);
+				ENGINE_DEFINE_REFLECTED_PROPERTY(BOOLEAN, online);
+			ENGINE_END_REFLECTED_CLASS
+			ENGINE_REFLECTED_CLASS(NodesStruct, Reflection::Reflected)
+				ENGINE_DEFINE_REFLECTED_GENERIC_ARRAY(NodeStruct, nodes);
+			ENGINE_END_REFLECTED_CLASS
 		}
 
 		NodeStatusInfo::NodeStatusInfo(void) {}
@@ -143,8 +151,17 @@ namespace Engine
 		}
 		Array<EndpointDesc> * DeserializeNodeEndpoints(const DataBlock * data)
 		{
-			// TODO: IMPLEMENT
-			return 0;
+			SafePointer< Array<EndpointDesc> > result = new Array<EndpointDesc>(0x10);
+			auto _info = DeserializeReflected<Formats::NodeEndpointsStruct>(data);
+			for (auto & e : _info.endpoints) {
+				EndpointDesc desc;
+				desc.address = e.address;
+				desc.service_name = e.service_name;
+				desc.service_id = e.service_id;
+				result->Append(desc);
+			}
+			result->Retain();
+			return result;
 		}
 		NodeSystemInfo GetThisMachineSystemInfo(void)
 		{
@@ -228,21 +245,39 @@ namespace Engine
 			{
 				try {
 					if (verb == 0x00000201) {
-						// TODO: IMPLEMENT
+						Formats::NodesStruct result;
+						UUID current;
+						if (GetServerCurrentNet(&current)) {
+							SafePointer< Array<NodeDesc> > nodes = ServerEnumerateNetNodes(&current);
+							for (auto & n : *nodes) {
+								result.nodes.AppendNew();
+								auto & nn = result.nodes.InnerArray.LastElement();
+								nn.address = n.ecf_address;
+								nn.name = n.known_name;
+								nn.online = n.online;
+							}
+							SafePointer<DataBlock> responce = SerializeReflected(result);
+							ServerSendMessage(0x00010201, from, responce);
+						}
 					} else if (verb == 0x00010201) {
-						// TODO: IMPLEMENT
 					} else if (verb == 0x00000202) {
-						// TODO: IMPLEMENT
+						auto service_id = data ? string(data->GetBuffer(), data->Length(), Encoding::UTF8) : string(L"");
+						SafePointer< Array<EndpointDesc> > srvc = ServerEnumerateServices(service_id);
+						SafePointer<DataBlock> responce = SerializeNodeEndpoints(*srvc);
+						ServerSendMessage(0x00010202, from, responce);
 					} else if (verb == 0x00010202) {
-						// TODO: IMPLEMENT
+						SafePointer< Array<EndpointDesc> > srvc = DeserializeNodeEndpoints(data);
+						sync->Wait();
+						for (auto & cb : callbacks) cb->ProcessServicesList(from, *srvc);
+						sync->Open();
 					} else if (verb == 0x00000203) {
 						auto status = DeserializeNodeStatus(data);
 						sync->Wait();
 						for (auto & cb : callbacks) cb->ProcessNodeStatusInfo(from, status);
 						sync->Open();
 					} else if (verb == 0x00000204) {
-						SafePointer<DataBlock> data = SerializeNodeInfo(GetThisMachineSystemInfo());
-						ServerSendMessage(0x00010204, from, data);
+						SafePointer<DataBlock> responce = SerializeNodeInfo(GetThisMachineSystemInfo());
+						ServerSendMessage(0x00010204, from, responce);
 					} else if (verb == 0x00010204) {
 						auto info = DeserializeNodeInfo(data);
 						sync->Wait();
@@ -290,10 +325,7 @@ namespace Engine
 			delete server_service_callback;
 			server_service_callback = 0;
 		}
-		void ServerServiceSendServicesRequest(ObjectAddress to)
-		{
-			// TODO: IMPLEMENT
-		}
+		void ServerServiceSendServicesRequest(ObjectAddress to) { ServerSendMessage(0x00000202, to, 0); }
 		void ServerServiceSendInformationRequest(ObjectAddress to) { ServerSendMessage(0x00000204, to, 0); }
 		void ServerServiceSendControlMessage(ObjectAddress to, uint control_verb)
 		{

@@ -2,7 +2,7 @@
 Languages = "en,ru"
 NoDockIcon = true
 OutputName = "ecfsrvr"
-Subsystem = "console"
+Subsystem = "gui"
 UseVersionDefines = true
 CompileList {
 	AAAAAA = "ecfsrvr.cxx"

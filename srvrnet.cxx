@@ -15,10 +15,6 @@ using namespace Engine::Storage;
 #define ECF_CP_NETAUTOCONNECT	L"Autoconnect"
 #define ECF_CP_NETTIMESTAMP		L"Timestamp"
 
-// TODO: REMOVE
-IO::Console dcon;
-// TODO: END REMOVE
-
 namespace Engine
 {
 	namespace Cluster
@@ -144,6 +140,42 @@ namespace Engine
 			if (!reg) throw InvalidFormatException();
 			return DeserializeNetDesc(reg);
 		}
+		uint32 RegisterService(const string & id, const string & name)
+		{
+			uint32 word_mx = 0;
+			for (auto & s : services) {
+				if (s.prefix > word_mx) word_mx = s.prefix;
+				if (s.identifier == id) return s.prefix;
+			}
+			word_mx++;
+			ServiceEntry entry;
+			entry.prefix = word_mx;
+			entry.name = name;
+			entry.identifier = id;
+			services.Append(entry);
+			return word_mx;
+		}
+		ServiceEntry * FindService(uint32 word)
+		{
+			for (auto & s : services) if (s.prefix == word) return &s;
+			return 0;
+		}
+		ObjectAddress RegisterClient(Socket * socket, uint32 service_word)
+		{
+			uint32 mx_word = 0;
+			for (auto & c : clients) {
+				if (GetAddressService(c.address) == service_word) {
+					auto word = GetAddressInstance(c.address);
+					if (word > mx_word) mx_word = word;
+				}
+			}
+			mx_word++;
+			ClientEntry client;
+			client.socket.SetRetain(socket);
+			client.address = MakeObjectAddress(AddressLevelClient, service_word, GetAddressNode(self_addr), mx_word);
+			clients << client;
+			return client.address;
+		}
 
 		void ServiceShutdown(void)
 		{
@@ -191,7 +223,15 @@ namespace Engine
 							break;
 						}
 					} else {
-						// TODO: IMPLEMENT ENDPOINT SEARCH
+						for (auto & c : clients) if (c.address == to) {
+							if (c.socket) {
+								try {
+									InternalSendMessage(c.socket, verb, from, to, payload);
+									status = true;
+								} catch (...) {}
+							}
+							break;
+						}
 					}
 				}
 				if (lock) net_sync->Open();
@@ -273,7 +313,25 @@ namespace Engine
 						}
 					} else if ((ot & 0xFF000000) == 0x02000000) {
 						ZeroMemory(ret_client_uuid, sizeof(UUID));
-						// TODO: IMPLEMENT ENDPOINT HANDSHAKE (INCOMING SIDE)
+						uint32 service_word = 0;
+						if ((ot & 0xF00000) == 0x800000) {
+							int service_name_length = (ot & 0xFFF00) >> 8;
+							int service_id_length = (ot & 0xFF);
+							if (!service_name_length || !service_id_length) throw Exception();
+							DataBlock service_name_id(1);
+							service_name_id.SetLength(service_name_length + service_id_length);
+							socket->Read(service_name_id.GetBuffer(), service_name_id.Length());
+							auto service_id = string(service_name_id.GetBuffer(), service_id_length, Encoding::UTF8);
+							auto service_name = string(service_name_id.GetBuffer() + service_id_length, service_name_length, Encoding::UTF8);
+							service_word = RegisterService(service_id, service_name);
+						} else service_word = ot & 0xFFFFF;
+						auto service = FindService(service_word);
+						if (!service) throw Exception();
+						result = RegisterClient(socket, service_word);
+						MemoryCopy(&sign, "ECLFRESP", 8);
+						socket->Write(&sign, 8);
+						socket->Write(&result, 8);
+						socket->Write(&self_addr, 8);
 					} else throw Exception();
 				} catch (...) {
 					MemoryCopy(&sign, "ECLFRESP", 8);
@@ -463,7 +521,10 @@ namespace Engine
 					}
 				}
 			} else if (GetAddressLevel(desc->address) == AddressLevelClient) {
-				// TODO: UNREGISTER CLIENT AND SOCKET
+				for (int i = 0; i < clients.Length(); i++) if (clients[i].address == desc->address) {
+					clients.Remove(i);
+					break;
+				}
 			}
 			net_sync->Open();
 			delete desc;
@@ -672,8 +733,25 @@ namespace Engine
 		uint32 GetAddressNode(ObjectAddress address) { return (address >> 16) & 0xFFFF; }
 		uint32 GetAddressInstance(ObjectAddress address) { return address & 0xFFFF; }
 
-		bool ServerInitialize(void)
+		bool ServerInitialize(UI::InterfaceTemplate * interface)
 		{
+			ServiceEntry service;
+			service.identifier = IdentifierServiceNode;
+			service.prefix = AddressServiceNode;
+			service.name = interface ? *interface->Strings[L"TextServiceNode"] : L"Engine Cluster Node";
+			services << service;
+			service.identifier = IdentifierServiceWorkClient;
+			service.prefix = AddressServiceWorkClient;
+			service.name = interface ? *interface->Strings[L"TextServiceWorkClient"] : L"Engine Cluster Work Client";
+			services << service;
+			service.identifier = IdentifierServiceWorkHost;
+			service.prefix = AddressServiceWorkHost;
+			service.name = interface ? *interface->Strings[L"TextServiceWorkHost"] : L"Engine Cluster Work Host";
+			services << service;
+			service.identifier = IdentifierServiceTextLogger;
+			service.prefix = AddressServiceTextLogger;
+			service.name = interface ? *interface->Strings[L"TextServiceTextLogger"] : L"Engine Cluster Text Logger";
+			services << service;
 			ZeroMemory(&net_uuid, sizeof(net_uuid));
 			ZeroMemory(&node_uuid, sizeof(node_uuid));
 			config_alternated = join_allowed = false;
@@ -981,8 +1059,56 @@ namespace Engine
 
 		Array<EndpointDesc> * ServerEnumerateServices(const string & service_id)
 		{
-			// TODO: IMPLEMENT
-			return 0;
+			SafePointer< Array<EndpointDesc> > result = new Array<EndpointDesc>(0x10);
+			net_sync->Wait();
+			try {
+				if (service_id.Length()) {
+					uint32 service_word = 0xFFFFFFFF;
+					string name;
+					for (auto & srvc : services) if (srvc.identifier == service_id) { name = srvc.name; service_word = srvc.prefix; break; }
+					if (service_word != 0xFFFFFFFF) {
+						if (service_word == AddressServiceNode && net_status == 1) {
+							EndpointDesc desc;
+							desc.address = self_addr;
+							desc.service_id = services[0].identifier;
+							desc.service_name = services[0].name;
+							result->Append(desc);
+						}
+						for (auto & clnt : clients) {
+							if (GetAddressService(clnt.address) == service_word) {
+								EndpointDesc desc;
+								desc.service_id = service_id;
+								desc.service_name = name;
+								desc.address = clnt.address;
+								result->Append(desc);
+							}
+						}
+					}
+				} else {
+					if (net_status == 1) {
+						EndpointDesc desc;
+						desc.address = self_addr;
+						desc.service_id = services[0].identifier;
+						desc.service_name = services[0].name;
+						result->Append(desc);
+					}
+					for (auto & clnt : clients) {
+						EndpointDesc desc;
+						for (auto & srvc : services) if (srvc.prefix == GetAddressService(clnt.address)) {
+							desc.service_id = srvc.identifier;
+							desc.service_name = srvc.name;
+							break;
+						}
+						if (desc.service_id.Length()) {
+							desc.address = clnt.address;
+							result->Append(desc);
+						}
+					}
+				}
+			} catch (...) { net_sync->Open(); throw; }
+			net_sync->Open();
+			result->Retain();
+			return result;
 		}
 		ObjectAddress GetLoopbackAddress(void) { return self_addr; }
 	}

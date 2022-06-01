@@ -102,6 +102,7 @@ resource string TextIdle [ _ ru ] { "Idle" "Свободен" }
 resource string TextUnknown [ _ ru ] { "Unknown" "Не известно" }
 resource string TextReady [ _ ru ] { "%0%% ready" "%0%% готово" }
 resource string TextNodeInfo [ _ ru ] { "Node information" "Свойства узла" }
+resource string TextNodeServices [ _ ru ] { "Node services" "Службы узла" }
 resource string TextProperty [ _ ru ] { "Property" "Свойство" }
 resource string TextValue [ _ ru ] { "Value" "Значение" }
 resource string TextNodeName [ _ ru ] { "Node name" "Имя узла" }
@@ -122,6 +123,13 @@ resource string TextClockCPU [ _ ru ] { "CPU clock frequency" "Тактовая 
 resource string TextClockCPUHZ [ _ ru ] { "%0.%1 GHz" "%0,%1 ГГц" }
 resource string TextCoresPhysical [ _ ru ] { "Physical cores" "Физические ядра" }
 resource string TextCoresVirtual [ _ ru ] { "Virtual cores" "Виртуальные ядра" }
+resource string TextServiceNode [ _ ru ] { "Cluster node" "Узел кластера" }
+resource string TextServiceWorkClient [ _ ru ] { "Cluster work client" "Клиент рабочего подряда" }
+resource string TextServiceWorkHost [ _ ru ] { "Cluster work host" "Среда рабочего подряда" }
+resource string TextServiceTextLogger [ _ ru ] { "Cluster text logger" "Консоль кластера" }
+resource string TextService [ _ ru ] { "Service" "Служба" }
+resource string TextServiceID [ _ ru ] { "Service ID" "Идентификатор" }
+resource string TextAddress [ _ ru ] { "Address" "Адрес" }
 
 dialog SelfSetup {
 	DialogFrame {
@@ -199,6 +207,40 @@ dialog ShowNodeInfo {
 				ViewElementNormal { text {
 					position { z 5, 0, w 1, w 1 }
 					text @ Value font @ Font color { 0, 0, 0 } vcenter
+				} }
+			}
+		}
+		Button { position { w 1 z -105, w 1 z -33, w 1 z -5, w 1 z -5 } Text TextClose ID 1 }
+	}
+}
+dialog ShowServices {
+	DialogFrame {
+		position { 0, 0, z 550, z 400 }
+		Captioned Title TextNodeServices CloseButton Sizeble
+		ListView {
+			position { z 5, z 5, w 1 z -5, w 1 z -38 } ID 101
+			ListViewColumn {
+				position { 0, 0, z 180, 0 } MinimalWidth z 100
+				Text TextService
+				ViewElementNormal { text {
+					position { z 5, 0, w 1, w 1 }
+					text @ Service font @ Font color { 0, 0, 0 } vcenter
+				} }
+			}
+			ListViewColumn {
+				position { 0, 0, z 140, 0 } MinimalWidth z 100
+				Text TextAddress
+				ViewElementNormal { text {
+					position { z 5, 0, w 1, w 1 }
+					text @ Address font @ Font color { 0, 0, 0 } vcenter
+				} }
+			}
+			ListViewColumn {
+				position { 0, 0, z 200, 0 } MinimalWidth z 100
+				Text TextServiceID
+				ViewElementNormal { text {
+					position { z 5, 0, w 1, w 1 }
+					text @ ServiceID font @ Font color { 0, 0, 0 } vcenter
 				} }
 			}
 		}

@@ -20,6 +20,11 @@ namespace Engine
 		constexpr uint32 AddressInstanceUnique = 0x0000;
 		constexpr uint32 AddressInstanceBase = 0x0001;
 
+		constexpr widechar * IdentifierServiceNode = L"engine.cluster.node";
+		constexpr widechar * IdentifierServiceWorkClient = L"engine.cluster.employer";
+		constexpr widechar * IdentifierServiceWorkHost = L"engine.cluster.worker";
+		constexpr widechar * IdentifierServiceTextLogger = L"engine.cluster.logger";
+
 		typedef uint64 ObjectAddress;
 		struct UUID { uint8 bytes[16]; };
 		struct NodeDesc {
@@ -82,7 +87,7 @@ namespace Engine
 		uint32 GetAddressNode(ObjectAddress address);
 		uint32 GetAddressInstance(ObjectAddress address);
 
-		bool ServerInitialize(void);
+		bool ServerInitialize(UI::InterfaceTemplate * interface = 0);
 		void ServerPerformAutoconnect(void);
 		void ServerShutdown(void);
 

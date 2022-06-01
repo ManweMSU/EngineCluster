@@ -326,6 +326,42 @@ public:
 		CreateModalWindow(interface.Dialog[L"ShowNodeInfo"], callback, Rectangle::Entire(), parent);
 	}
 };
+class ShowServicesCallback : public IEventCallback
+{
+	Array<EndpointDesc> _endpoints;
+	ENGINE_REFLECTED_CLASS(_list_element, Reflection::Reflected)
+		ENGINE_DEFINE_REFLECTED_PROPERTY(STRING, Service);
+		ENGINE_DEFINE_REFLECTED_PROPERTY(STRING, ServiceID);
+		ENGINE_DEFINE_REFLECTED_PROPERTY(STRING, Address);
+	ENGINE_END_REFLECTED_CLASS
+public:
+	ShowServicesCallback(void) : _endpoints(0x10) {}
+	virtual void Created(IWindow * window) override
+	{
+		InterlockedIncrement(modal_counter);
+		GetRootControl(window)->AddDialogStandardAccelerators();
+		auto list = FindControl(window, 101)->As<Controls::ListView>();
+		for (auto & srvc : _endpoints) {
+			_list_element element;
+			element.Address = string(srvc.address, HexadecimalBase, 16);
+			element.Service = srvc.service_name;
+			element.ServiceID = srvc.service_id;
+			list->AddItem(element);
+		}
+	}
+	virtual void Destroyed(IWindow * window) override { InterlockedDecrement(modal_counter); delete this; }
+	virtual void WindowClose(IWindow * window) override { HandleControlEvent(window, 2, ControlEvent::AcceleratorCommand, 0); }
+	virtual void HandleControlEvent(Windows::IWindow * window, int ID, ControlEvent event, Control * sender) override
+	{
+		if (ID == 1 || ID == 2) GetWindowSystem()->ExitModalSession(window);
+	}
+	static void ShowServicesDialog(IWindow * parent, const Array<EndpointDesc> & endpoints)
+	{
+		auto callback = new ShowServicesCallback;
+		callback->_endpoints = endpoints;
+		CreateModalWindow(interface.Dialog[L"ShowServices"], callback, Rectangle::Entire(), parent);
+	}
+};
 
 class ServerPanelCallback : public IEventCallback, public IServerEventCallback, public IServerServiceNotificationCallback
 {
@@ -606,16 +642,11 @@ public:
 			if (index >= 0) ServerServiceSendControlMessage(_nodes[index], ServerControlHybernatePC);
 		}
 		// TODO: IMPLEMENT PAGE 2
-		// TODO: TIER 5 (STATUS API)
-		// endpoint registration and routing
-		// 0000 0201 - enumerate nodes
-		// 0001 0201 - node enumeration responce
-		// 0000 0202 - enumerate service instances
-		// 0001 0202 - service enumeration responce
 		// TODO: TIER 6 (LOGGER API)
 		// 0000 0301 - log text notification (primary)
 		// 0000 0302 - log text notification (broadcast)
 		// 0000 0303 - log text notification (client)
+		// TODO: TIER 7 (COMPUTATION API)
 	}
 	void OnNetStatusUpdated(void)
 	{
@@ -678,6 +709,11 @@ public:
 		if (!main_window || modal_counter || !main_window->IsVisible()) return;
 		ShowNodeInfoCallback::ShowNodeInfoDialog(main_window, from, info);
 	}
+	void ShowEndpointInfo(ObjectAddress from, const Array<EndpointDesc> & endpoints)
+	{
+		if (!main_window || modal_counter || !main_window->IsVisible()) return;
+		ShowServicesCallback::ShowServicesDialog(main_window, endpoints);
+	}
 	virtual void SwitchedToNet(const UUID * uuid) override
 	{
 		auto self = this;
@@ -737,7 +773,10 @@ public:
 	}
 	virtual void ProcessServicesList(ObjectAddress from, const Array<EndpointDesc> & endpoints) override
 	{
-		// TODO: IMPLEMENT
+		auto self = this;
+		auto addr = from;
+		auto se = endpoints;
+		GetWindowSystem()->SubmitTask(CreateFunctionalTask([self, addr, se]() { self->ShowEndpointInfo(addr, se); }));
 	}
 	virtual void ProcessNodeSystemInfo(ObjectAddress from, const NodeSystemInfo & info) override
 	{
@@ -879,7 +918,7 @@ int Main(void)
 	// 	}
 	// }
 	//if (!GetWindowSystem()->LaunchIPCServer(ENGINE_VI_APPIDENT, ENGINE_VI_COMPANYIDENT)) return 1;
-	if (!ServerInitialize()) return 2;
+	if (!ServerInitialize(&interface)) return 2;
 	if (!GetServerName().Length()) {
 		if (!ServerSetupCallback::RunSetup()) return 0;
 	}
@@ -887,13 +926,12 @@ int Main(void)
 	CreateWindow(interface.Dialog[L"Main"], &panel_callback, Rectangle::Entire());
 	
 	// TODO: REGISTER CALLBACKS:
-	//   NODE STATUS API MESSAGE HANDLERS
 	//   TEXT LOGGER API MESSAGE HANDLERS
 	//   COMPUTATION API MESSAGE AND EVENT HANDLERS
 
 	status_icon = GetWindowSystem()->CreateStatusBarIcon();
 	status_icon->SetCallback(&main_callback);
-	status_icon->SetIconColorUsage(StatusBarIconColorUsage::Monochromic);
+	status_icon->SetIconColorUsage(StatusBarIconColorUsage::Colourfull);
 	status_icon->SetIcon(status_image);
 	status_icon->SetEventID(1);
 	status_icon->PresentIcon(true);
