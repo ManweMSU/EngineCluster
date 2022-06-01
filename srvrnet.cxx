@@ -51,6 +51,12 @@ namespace Engine
 			SafePointer<IDispatchTask> on_success;
 			SafePointer<IDispatchTask> on_fail;
 		};
+		struct ReconnectEntry
+		{
+			UUID node;
+			Address address;
+			uint16 port;
+		};
 
 		SafeArray<NetDesc> known_nets(0x10);
 		Array<IServerEventCallback *> event_callbacks(0x10);
@@ -581,22 +587,31 @@ namespace Engine
 		{
 			InterlockedIncrement(service_counter);
 			while (true) {
-				Array<UUID> try_connect(0x10);
+				Array<ReconnectEntry> recon_list(0x10);
 				net_sync->Wait();
 				for (auto & i : node_info) if (!i.socket && MemoryCompare(&i.node_desc->uuid, &node_uuid, sizeof(UUID))) {
-					try { try_connect << i.node_desc->uuid; } catch (...) {}
+					try {
+						ReconnectEntry ent;
+						ent.node = i.node_desc->uuid;
+						ent.address = i.node_desc->ip_address;
+						ent.port = i.node_desc->ip_port;
+						recon_list << ent;
+					} catch (...) {}
 				}
 				net_sync->Open();
 				if (net_status != 1) break;
-				while (try_connect.Length()) {
-					net_sync->Wait();
-					auto conn = try_connect.LastElement();
-					try_connect.RemoveLast();
+				while (recon_list.Length()) {
+					auto conn = recon_list.LastElement();
+					recon_list.RemoveLast();
+					SafePointer<Socket> socket;
 					try {
-						for (auto & i : node_info) if (MemoryCompare(&conn, &i.node_desc->uuid, sizeof(UUID)) == 0 && !i.socket) {
+						socket = CreateSocket(SocketAddressDomain::IPv6, SocketProtocol::TCP);
+						socket->Connect(conn.address, conn.port);
+					} catch (...) { continue; }
+					net_sync->Wait();
+					try {
+						for (auto & i : node_info) if (MemoryCompare(&conn.node, &i.node_desc->uuid, sizeof(UUID)) == 0 && !i.socket) {
 							if (net_status != 1) break;
-							SafePointer<Socket> socket = CreateSocket(SocketAddressDomain::IPv6, SocketProtocol::TCP);
-							socket->Connect(i.node_desc->ip_address, i.node_desc->ip_port);
 							char sign[8];
 							uint32 ot;
 							MemoryCopy(&sign, "ECLFAUTH", 8);

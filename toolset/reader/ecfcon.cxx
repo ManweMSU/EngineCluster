@@ -90,6 +90,24 @@ public:
 				}
 				if (prefix) console.Write(L" ");
 				console.WriteLine(msg.contents);
+				for (auto & writer : writers) {
+					prefix = false;
+					if (print_sender) {
+						writer.Write(L"[ ");
+						writer.Write(string(msg.sender, HexadecimalBase, 16));
+						writer.Write(L" ]");
+						prefix = true;
+					}
+					if (print_time) {
+						if (prefix) writer.Write(L" ");
+						writer.Write(L"(");
+						writer.Write(msg.time.ToLocal().ToString());
+						writer.Write(L")");
+						prefix = true;
+					}
+					if (prefix) writer.Write(L" ");
+					writer.WriteLine(msg.contents);
+				}
 			}
 		}
 		client->UnregisterCallback(this);

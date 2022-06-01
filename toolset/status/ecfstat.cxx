@@ -77,7 +77,7 @@ int Main(void)
 			if (n.Online) {
 				console << TextColor(ConsoleColor::Green) << L"ONLINE" << TextColor(ConsoleColor::Default) << LineFeed();
 			} else {
-				console << TextColor(ConsoleColor::Red) << L"OFFLINE" << TextColor(ConsoleColor::Default) << LineFeed();
+				console << TextColor(ConsoleColor::Blue) << L"OFFLINE" << TextColor(ConsoleColor::Default) << LineFeed();
 			}
 			if (print_endpoints && n.Online) {
 				SafePointer< Array<EndpointDesc> > endpoints = client->EnumerateEndpoints(n.Address);
