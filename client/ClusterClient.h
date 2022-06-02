@@ -29,6 +29,13 @@ namespace Engine
 			string NodeName;
 			bool Online;
 		};
+		struct NodeStatus
+		{
+			Power::BatteryStatus Battery;
+			uint BatteryLevel;
+			uint ProgressComplete;
+			uint ProgressTotal;
+		};
 
 		class IMessageCallback
 		{
@@ -83,6 +90,7 @@ namespace Engine
 			ObjectAddress GetNodeAddress(void) const;
 
 			Array<NodeDesc> * EnumerateNodes(bool online_only = true);
+			NodeStatus QueryNodeStatus(ObjectAddress node);
 			Array<EndpointDesc> * EnumerateEndpoints(void);
 			Array<EndpointDesc> * EnumerateEndpoints(const string & service_id);
 			Array<EndpointDesc> * EnumerateEndpoints(ObjectAddress node_on);

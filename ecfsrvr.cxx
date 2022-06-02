@@ -131,6 +131,7 @@ public:
 		auto window = CreateWindow(interface.Dialog[L"SelfSetup"], &callback, Rectangle::Entire());
 		window->Show(true);
 		GetWindowSystem()->RunMainLoop();
+		window->Show(false);
 		window->Destroy();
 		GetWindowSystem()->SetCallback(stored_callback);
 		GetWindowSystem()->SetApplicationIconVisibility(false);

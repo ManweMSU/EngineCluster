@@ -236,6 +236,7 @@ namespace Engine
 				else if (verb == 0x00000204) return true;
 				else if (verb == 0x00010204) return true;
 				else if (verb == 0x00000205) return true;
+				else if (verb == 0x00000206) return true;
 				else if (verb == 0x00000301) return true;
 				else if (verb == 0x00000302) return true;
 				else if (verb == 0x00000303) return true;
@@ -289,6 +290,16 @@ namespace Engine
 						sync->Wait();
 						for (auto & cb : callbacks) cb->ProcessControlMessage(from, verb);
 						sync->Open();
+					} else if (verb == 0x00000206) {
+						sync->Wait();
+						NodeStatusInfo status;
+						status.Battery = Power::GetBatteryStatus();
+						status.BatteryLevel = uint32(Power::GetBatteryChargeLevel() * 1000.0);
+						status.ProgressComplete = progress_complete;
+						status.ProgressTotal = progress_total;
+						sync->Open();
+						SafePointer<DataBlock> status_data = SerializeNodeStatus(status);
+						ServerSendMessage(0x00000203, from, status_data);
 					} else if (verb == 0x00000301) {
 						ServerSendMessage(0x00000302, MakeObjectAddress(AddressLevelNode, AddressServiceNode, AddressNodeUndefined, AddressInstanceUnique), data);
 						ServerSendMessage(0x00000303, MakeObjectAddress(AddressLevelClient, AddressServiceTextLogger, GetAddressNode(GetLoopbackAddress()), AddressInstanceUnique), data);

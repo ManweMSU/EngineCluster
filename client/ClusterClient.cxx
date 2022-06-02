@@ -22,6 +22,12 @@ namespace Engine
 			ENGINE_REFLECTED_CLASS(NodesStruct, Reflection::Reflected)
 				ENGINE_DEFINE_REFLECTED_GENERIC_ARRAY(NodeStruct, nodes);
 			ENGINE_END_REFLECTED_CLASS
+			ENGINE_REFLECTED_CLASS(NodeStatusStruct, Reflection::Reflected)
+				ENGINE_DEFINE_REFLECTED_PROPERTY(UINT32, battery_status);
+				ENGINE_DEFINE_REFLECTED_PROPERTY(UINT32, battery_level);
+				ENGINE_DEFINE_REFLECTED_PROPERTY(UINT32, progress_complete);
+				ENGINE_DEFINE_REFLECTED_PROPERTY(UINT32, progress_total);
+			ENGINE_END_REFLECTED_CLASS
 		}
 
 		int Client::_thread_proc(void * arg_ptr)
@@ -184,6 +190,46 @@ namespace Engine
 			};
 			_node_enum enumerator(online_only);
 			return enumerator.Send(this);
+		}
+		NodeStatus Client::QueryNodeStatus(ObjectAddress node)
+		{
+			if (!_sync) throw InvalidStateException();
+			class _node_status : public IMessageCallback
+			{
+				SafePointer<Semaphore> _sync;
+				NodeStatus _result;
+			public:
+				_node_status(void) { _sync = CreateSemaphore(0); if (!_sync) throw Exception(); _result.ProgressComplete = 0xFFFFFFFF; }
+				virtual bool RespondsToMessage(uint32 verb) override { return verb == 0x00000203; }
+				virtual void HandleMessage(ObjectAddress from, uint32 verb, const DataBlock * data) override
+				{
+					try {
+						Streaming::MemoryStream stream(0x1000);
+						stream.WriteArray(data);
+						stream.Seek(0, Streaming::Begin);
+						Formats::NodeStatusStruct status;
+						Reflection::RestoreFromBinaryObject(status, &stream);
+						if (status.battery_status == 1) _result.Battery = Power::BatteryStatus::NoBattery;
+						else if (status.battery_status == 2) _result.Battery = Power::BatteryStatus::Charging;
+						else if (status.battery_status == 3) _result.Battery = Power::BatteryStatus::InUse;
+						else _result.Battery = Power::BatteryStatus::Unknown;
+						_result.BatteryLevel = status.battery_level;
+						_result.ProgressComplete = status.progress_complete;
+						_result.ProgressTotal = status.progress_total;
+					} catch (...) { _result.ProgressComplete = 0xFFFFFFFF; }
+					_sync->Open();
+				}
+				virtual void CallbackExpired(void) override { _sync->Open(); }
+				NodeStatus Send(Client * client, ObjectAddress node)
+				{
+					client->RegisterOneTimeCallback(this, 2000);
+					client->SendMessage(0x00000206, node, 0);
+					_sync->Wait();
+					if (_result.ProgressComplete != 0xFFFFFFFF) return _result; else throw Exception();
+				}
+			};
+			_node_status status;
+			return status.Send(this, node);
 		}
 		Array<EndpointDesc> * Client::EnumerateEndpoints(void) { return EnumerateEndpoints(0, L""); }
 		Array<EndpointDesc> * Client::EnumerateEndpoints(const string & service_id) { return EnumerateEndpoints(0, service_id); }

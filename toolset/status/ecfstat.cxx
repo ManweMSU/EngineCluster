@@ -12,6 +12,7 @@ Console console;
 SafePointer<Client> client;
 bool print_endpoints = false;
 bool print_offline = false;
+bool print_status = false;
 
 bool ParseCommandLine(void)
 {
@@ -41,6 +42,8 @@ bool ParseCommandLine(void)
 					print_offline = true;
 				} else if (a[j] == L'e') {
 					print_endpoints = true;
+				} else if (a[j] == L's') {
+					print_status = true;
 				} else return false;
 			}
 		} else return false;
@@ -75,7 +78,26 @@ int Main(void)
 				L"\" [ " << TextColor(ConsoleColor::Cyan) << string(n.Address, HexadecimalBase, 16) << TextColor(ConsoleColor::Default) <<
 				L" ] ";
 			if (n.Online) {
-				console << TextColor(ConsoleColor::Green) << L"ONLINE" << TextColor(ConsoleColor::Default) << LineFeed();
+				console << TextColor(ConsoleColor::Green) << L"ONLINE" << TextColor(ConsoleColor::Default);
+				if (print_status) {
+					try {
+						auto status = client->QueryNodeStatus(n.Address);
+						if (status.Battery == Power::BatteryStatus::Charging) {
+							console << L", battery: " << TextColor(ConsoleColor::Green) <<
+								string(status.BatteryLevel / 10) << L"%" << TextColor(ConsoleColor::Default);
+						} else if (status.Battery == Power::BatteryStatus::InUse) {
+							console << L", battery: " << TextColor(ConsoleColor::Yellow) <<
+								string(status.BatteryLevel / 10) << L"%" << TextColor(ConsoleColor::Default);
+						}
+						if (status.ProgressTotal) {
+							console << L", work complete: " << TextColor(ConsoleColor::Cyan) <<
+								string(status.ProgressComplete * 100 / status.ProgressTotal) << L"%" << TextColor(ConsoleColor::Default);
+						} else console << L", idle";
+					} catch (...) {
+						console << L", no status available";
+					}
+				}
+				console << LineFeed();
 			} else {
 				console << TextColor(ConsoleColor::Blue) << L"OFFLINE" << TextColor(ConsoleColor::Default) << LineFeed();
 			}
