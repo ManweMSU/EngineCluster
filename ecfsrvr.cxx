@@ -109,9 +109,11 @@ public:
 			if (IsValidNameUUID()) {
 				SetServerName(name);
 				SetServerUUID(&uuid);
+				window->Show(false);
 				GetWindowSystem()->ExitMainLoop();
 			}
 		} else if (ID == 2) {
+			window->Show(false);
 			GetWindowSystem()->ExitMainLoop();
 		} else if (ID == 101 && event == ControlEvent::ValueChange) {
 			name = sender->GetText();
@@ -131,7 +133,6 @@ public:
 		auto window = CreateWindow(interface.Dialog[L"SelfSetup"], &callback, Rectangle::Entire());
 		window->Show(true);
 		GetWindowSystem()->RunMainLoop();
-		window->Show(false);
 		window->Destroy();
 		GetWindowSystem()->SetCallback(stored_callback);
 		GetWindowSystem()->SetApplicationIconVisibility(false);
