@@ -30,6 +30,58 @@ namespace Engine
 			ENGINE_END_REFLECTED_CLASS
 		}
 
+		class RemoteLogger : public Streaming::ITextWriter
+		{
+			SafePointer<Client> _client;
+			SafePointer<DynamicString> _buffer;
+			ObjectAddress _self, _node;
+
+			void _send(const string & line) const
+			{
+				SafePointer<DataBlock> data = new DataBlock(1);
+				Time time = Time::GetCurrentTime();
+				data->SetLength(sizeof(_self) + sizeof(time) + line.GetEncodedLength(Encoding::UTF8));
+				MemoryCopy(data->GetBuffer(), &_self, sizeof(_self));
+				MemoryCopy(data->GetBuffer() + sizeof(_self), &time, sizeof(time));
+				line.Encode(data->GetBuffer() + sizeof(_self) + sizeof(time), Encoding::UTF8, false);
+				_client->SendMessage(0x00000301, _node, data);
+			}
+			void _drain(void) const
+			{
+				int pos_from = 0;
+				for (int i = 0; i < _buffer->Length(); i++) if (_buffer->CharAt(i) == L'\n') {
+					DynamicString fragment;
+					for (int j = pos_from; j < i; j++) {
+						if (_buffer->CharAt(j) >= 32 || _buffer->CharAt(j) == L'\t') fragment << _buffer->CharAt(j);
+					}
+					_send(fragment.ToString());
+					pos_from = i + 1;
+				}
+				if (pos_from) _buffer->RemoveRange(0, pos_from);
+			}
+		public:
+			RemoteLogger(Client * client)
+			{
+				_buffer = new DynamicString;
+				_client.SetRetain(client);
+				_self = client->GetSelfAddress();
+				_node = client->GetNodeAddress();
+			}
+			virtual ~RemoteLogger(void) override { if (_buffer->Length()) try { _send(_buffer->ToString()); } catch (...) {} }
+			virtual void Write(const string & text) const override
+			{
+				_buffer->Concatenate(text);
+				_drain();
+			}
+			virtual void WriteLine(const string & text) const override
+			{
+				_buffer->Concatenate(text);
+				_buffer->Concatenate(L'\n');
+				_drain();
+			}
+			virtual void WriteEncodingSignature(void) const override {}
+		};
+
 		int Client::_thread_proc(void * arg_ptr)
 		{
 			auto self = reinterpret_cast<Client *>(arg_ptr);
@@ -291,6 +343,11 @@ namespace Engine
 				for (auto & n : *nodes) enumerator.Enumerate(this, n.Address);
 			}
 			return enumerator.Finalize();
+		}
+		Streaming::ITextWriter * Client::CreateLoggingService(void)
+		{
+			if (!_sync) throw InvalidStateException();
+			return new RemoteLogger(this);
 		}
 		void Client::SendMessage(uint32 verb, ObjectAddress to, const DataBlock * payload)
 		{

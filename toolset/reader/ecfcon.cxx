@@ -121,7 +121,7 @@ bool ParseCommandLine(void)
 		auto & a = args->ElementAt(i);
 		if (a[0] == L':' || a[0] == L'-') {
 			for (int j = 1; j < a.Length(); j++) {
-				if (a[j] == L'i') {
+				if (a[j] == L'i' && i < args->Length() - 1) {
 					i++;
 					auto domain = args->ElementAt(i);
 					try {
@@ -130,7 +130,7 @@ bool ParseCommandLine(void)
 						if (!ents || !ents->Length()) throw InvalidArgumentException();
 						client->SetConnectionIP(ents->FirstElement().EntityAddress);
 					} catch (...) { return false; }
-				} else if (a[j] == L'p') {
+				} else if (a[j] == L'p' && i < args->Length() - 1) {
 					i++;
 					auto port = args->ElementAt(i);
 					try {
@@ -142,7 +142,7 @@ bool ParseCommandLine(void)
 					print_sender = false;
 				} else if (a[j] == L't') {
 					print_time = true;
-				} else if (a[j] == L'o') {
+				} else if (a[j] == L'o' && i < args->Length() - 1) {
 					i++;
 					auto file = args->ElementAt(i);
 					try {

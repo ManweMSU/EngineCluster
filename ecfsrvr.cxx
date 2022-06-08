@@ -4,6 +4,7 @@
 #include "srvrsrvc.h"
 
 #define ECF_IPC_VERB_ACTIVATE	L"ACTIVATE"
+#define ECF_IPC_VERB_TERMINATE	L"TERMINATE"
 #define ECF_IPC_VERB_GETPORT	L"PORT"
 
 using namespace Engine;
@@ -644,7 +645,11 @@ public:
 			if (index >= 0) ServerServiceSendControlMessage(_nodes[index], ServerControlHybernatePC);
 		}
 		// TODO: IMPLEMENT PAGE 2
-		// TODO: TIER 7 (COMPUTATION API)
+		// TODO: TIER 7 (COMPUTATION API) - REMOTE COMPILATION
+		// TODO: TIER 8 (COMPUTATION API) - TASK LAUNCHER
+		// TODO: TIER 9 (COMPUTATION API) - TASK HOST INFRASTRUCTURE
+		// TODO: TIER 10 - ABOUT DIALOG
+		// TODO: TIER 11 - MANUALS
 	}
 	void OnNetStatusUpdated(void)
 	{
@@ -849,6 +854,9 @@ public:
 		if (verb == ECF_IPC_VERB_ACTIVATE) {
 			CreateNewFile();
 			if (main_window) main_window->RequireAttention();
+			return true;
+		} else if (verb == ECF_IPC_VERB_TERMINATE) {
+			Terminate();
 			return true;
 		} else return false;
 	}

@@ -73,16 +73,19 @@ TO SERVER AND TEXT LOGGER
   0000 0303 - log text notification (client)
 COMPUTATION MESSAGES
 TO SERVER
-  0000 0404 - node launch host
-  0001 0404 - launch host responce
-  0000 0405 - kill current host
+  0000 0411 - node launch host
+  0001 0411 - launch host responce
+  0000 0412 - kill current host
+  0000 0413 - node remote compile
+  0001 0413 - remote compile responce
+  0000 0414 - remote compiler notification
 TO HOST
-  0000 0411 - schedule task
-  0000 0412 - report queue status
-  0001 0412 - queue status responce
-  0000 0413 - terminate
+  0000 0421 - schedule task
+  0000 0422 - report queue status
+  0001 0423 - queue status responce
+  0000 0424 - terminate
 TO JOB CLIENT
-  0000 0421 - work finished responce and status
+  0000 0431 - work status responce
 
 USER SPACE VERBS
   8XXX XXXX

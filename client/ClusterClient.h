@@ -95,6 +95,7 @@ namespace Engine
 			Array<EndpointDesc> * EnumerateEndpoints(const string & service_id);
 			Array<EndpointDesc> * EnumerateEndpoints(ObjectAddress node_on);
 			Array<EndpointDesc> * EnumerateEndpoints(ObjectAddress node_on, const string & service_id);
+			Streaming::ITextWriter * CreateLoggingService(void);
 
 			void SendMessage(uint32 verb, ObjectAddress to, const DataBlock * payload);
 			void RegisterCallback(IMessageCallback * callback);
