@@ -78,7 +78,8 @@ TO SERVER
   0000 0412 - kill current host
   0000 0413 - node remote compile
   0001 0413 - remote compile responce
-  0000 0414 - remote compiler notification
+  0000 0414 - kill current compiler
+  0000 0415 - remote compiler notification
 TO HOST
   0000 0421 - schedule task
   0000 0422 - report queue status

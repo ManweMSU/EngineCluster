@@ -1,5 +1,7 @@
 #include "srvrsrvc.h"
 
+#include "client/ClusterPackage.h"
+
 namespace Engine
 {
 	namespace Cluster
@@ -190,6 +192,208 @@ namespace Engine
 			return info;
 		}
 
+		class CompilerHostInstance : public Object
+		{
+			static ObjectArray<CompilerHostInstance> _compilers;
+			static SafePointer<Semaphore> _sync;
+
+			volatile int _status;
+			string _words;
+			string * _return_exec_path;
+			string * _return_root_path;
+			ObjectAddress _client;
+			SafePointer<Process> _host;
+			SafePointer<Streaming::Stream> _package_stream;
+			SafePointer<IDispatchTask> _watchdog, _on_exit;
+			SafePointer<Thread> _watchdog_thread, _proc_thread;
+
+			CompilerHostInstance(void) : _status(0) {}
+			void _unregister(void) noexcept
+			{
+				_sync->Wait();
+				for (int i = 0; i < _compilers.Length(); i++) if (_compilers.ElementAt(i) == this) { _compilers.Remove(i); break; }
+				_sync->Open();
+			}
+			void _terminate(void) noexcept { _status = 2; }
+			static int _work_thread_proc(void * arg_ptr)
+			{
+				auto self = reinterpret_cast<CompilerHostInstance *>(arg_ptr);
+				self->Retain();
+				try {
+					SafePointer<Package> package = new Package(self->_package_stream);
+					auto asset = package->FindAsset(PackageAssetSources);
+					if (!asset) throw Exception();
+					auto root_path = IO::ExpandPath(IO::Path::GetDirectory(IO::GetExecutablePath()) + L"/compile/" +
+						IO::Path::GetFileNameWithoutExtension(asset->RootFile));
+					auto root_file = IO::ExpandPath(root_path + L"/" + asset->RootFile);
+					try { IO::RemoveEntireDirectory(root_path); } catch (...) {}
+					IO::CreateDirectoryTree(root_path);
+					SafePointer< Array<PackageFileDesc> > files = package->EnumerateFiles(asset->Handle);
+					for (auto & f : *files) {
+						if (self->_status) throw Exception();
+						if (f.Handle) {
+							Streaming::FileStream to(root_path + L"/" + f.Path, Streaming::AccessReadWrite, Streaming::CreateAlways);
+							SafePointer<Streaming::Stream> from = package->OpenFile(f.Handle);
+							from->CopyTo(&to);
+							IO::DateTime::SetFileCreationTime(to.Handle(), f.DateCreated);
+							IO::DateTime::SetFileAlterTime(to.Handle(), f.DateAltered);
+							IO::DateTime::SetFileAccessTime(to.Handle(), f.DateAccessed);
+						} else {
+							IO::CreateDirectoryTree(root_path + L"/" + f.Path);
+						}
+					}
+					package.SetReference(0);
+					self->_package_stream.SetReference(0);
+					if (!self->_status) {
+						Array<string> cmds(0x10);
+						cmds << root_file;
+						cmds << string(self->_client, HexadecimalBase, 16);
+						cmds << self->_words;
+						cmds << string(GetServerCurrentPort());
+						self->_host = CreateCommandProcess(L"ecfcomhs", &cmds);
+						if (!self->_host) throw Exception();
+						while (!self->_host->Exited()) {
+							if (self->_status) break;
+							Sleep(1000);
+						}
+						if (self->_status == 2) self->_host->Terminate(); else {
+							self->_host->Wait();
+							for (int i = 0; i < 100; i++) { if (self->_status) break; Sleep(100); }
+						}
+					}
+				} catch (...) { if (self->_host) self->_host->Terminate(); }
+				if (self->_on_exit) self->_on_exit->DoTask(0);
+				self->_unregister();
+				self->_status = 3;
+				self->_watchdog_thread->Wait();
+				self->Release();
+				return 0;
+			}
+			static int _watchdog_thread_proc(void * arg_ptr)
+			{
+				auto self = reinterpret_cast<CompilerHostInstance *>(arg_ptr);
+				self->Retain();
+				while (self->_status < 2) {
+					self->_watchdog->DoTask(0);
+					Sleep(1000);
+				}
+				self->Release();
+				return 0;
+			}
+			void _launch(void)
+			{
+				_proc_thread = CreateThread(_work_thread_proc, this);
+				_watchdog_thread = CreateThread(_watchdog_thread_proc, this);
+				if (!_watchdog_thread || !_proc_thread) throw Exception();
+			}
+			void _handle_message(uint32 status, const string & tx1, const string & tx2) noexcept
+			{
+				if (_return_exec_path) *_return_exec_path = tx1;
+				if (_return_root_path) *_return_root_path = tx2;
+				_status = 1;
+			}
+		public:
+			virtual ~CompilerHostInstance(void) override {}
+			static void PerformCompilation(const string & words, Streaming::Stream * stream, string * exec_path, string * root_path, IDispatchTask * watchdog, IDispatchTask * exit, ObjectAddress client)
+			{
+				if (exec_path) *exec_path = L"";
+				if (root_path) *root_path = L"";
+				_sync->Wait();
+				try {
+					SafePointer<CompilerHostInstance> new_host = new CompilerHostInstance;
+					new_host->_words = words;
+					new_host->_return_exec_path = exec_path;
+					new_host->_return_root_path = root_path;
+					new_host->_client = client;
+					new_host->_package_stream.SetRetain(stream);
+					new_host->_watchdog.SetRetain(watchdog);
+					new_host->_on_exit.SetRetain(exit);
+					new_host->_launch();
+					_compilers.Append(new_host);
+				} catch (...) {
+					if (exit) exit->DoTask(0);
+				}
+				_sync->Open();
+			}
+			static void TerminateCompiler(ObjectAddress client)
+			{
+				CompilerHostInstance * instance = 0;
+				_sync->Wait();
+				for (auto & c : _compilers) if (c._client == client) { instance = &c; break; }
+				_sync->Open();
+				if (instance) instance->_terminate();
+			}
+			static void TerminateAll(void)
+			{
+				_sync->Wait();
+				for (auto & c : _compilers) c._terminate();
+				_sync->Open();
+			}
+			static void HandleCompilerResponce(const DataBlock * data)
+			{
+				if (!data || data->Length() < 12) return;
+				ObjectAddress client;
+				uint32 status;
+				string tx1, tx2;
+				MemoryCopy(&client, data->GetBuffer(), 8);
+				MemoryCopy(&status, data->GetBuffer() + 8, 4);
+				try {
+					if (data->Length() > 12) for (int i = 12; i < data->Length(); i++) if (!data->ElementAt(i)) {
+						tx1 = string(data->GetBuffer() + 12, i - 12, Encoding::UTF8);
+						tx2 = string(data->GetBuffer() + i + 1, data->Length() - i - 1, Encoding::UTF8);
+						break;
+					}
+				} catch (...) {}
+				CompilerHostInstance * instance = 0;
+				_sync->Wait();
+				for (auto & c : _compilers) if (c._client == client) { instance = &c; break; }
+				_sync->Open();
+				if (instance) instance->_handle_message(status, tx1, tx2);
+			}
+			static void PackageAddDirectory(PackageBuilder * package, handle asset, const string & path, const string & prefix)
+			{
+				SafePointer< Array<string> > files = IO::Search::GetFiles(path + L"/*");
+				SafePointer< Array<string> > dirs = IO::Search::GetDirectories(path + L"/*");
+				for (auto & f : *files) {
+					if (f[0] == L'.' || f[0] == L'_') continue;
+					package->AddFile(path + L"/" + f, asset, prefix + f);
+				}
+				for (auto & d : *dirs) {
+					if (d[0] == L'.' || d[0] == L'_') continue;
+					package->AddDirectory(asset, prefix + d);
+					PackageAddDirectory(package, asset, path + L"/" + d, prefix + d + L"\\");
+				}
+			}
+			static void MakePackage(DataBlock * data, const string & dir_from, const string & xfile)
+			{
+				try {
+					SafePointer<Streaming::Stream> stream = new Streaming::MemoryStream(0x10000);
+					SafePointer<PackageBuilder> package = new PackageBuilder(stream);
+					string os, arch;
+					for (auto & w : IO::Path::GetFileName(dir_from).Split(L'_')) {
+						if (w == L"windows" || w == L"macosx") os = w;
+						else if (w == L"x86" || w == L"x64" || w == L"arm" || w == L"arm64") arch = w;
+					}
+					auto asset = package->CreateAsset(os, arch);
+					package->SetAssetRootFile(asset, xfile.Fragment(dir_from.Length() + 1, -1));
+					PackageAddDirectory(package, asset, dir_from, L"");
+					if (IO::FileExists(dir_from + L"/_obj/" + IO::Path::GetFileNameWithoutExtension(xfile) + L".formats.ini")) {
+						package->AddDirectory(asset, L"_obj");
+						package->AddFile(dir_from + L"/_obj/" + IO::Path::GetFileNameWithoutExtension(xfile) + L".formats.ini", asset,
+							L"_obj/" + IO::Path::GetFileNameWithoutExtension(xfile) + L".formats.ini");
+					}
+					package->Finalize();
+					package.SetReference(0);
+					int base = data->Length();
+					int length = stream->Length();
+					data->SetLength(base + length);
+					stream->Seek(0, Streaming::Begin);
+					stream->Read(data->GetBuffer() + base, length);
+				} catch (...) {}
+			}
+		};
+		ObjectArray<CompilerHostInstance> CompilerHostInstance::_compilers(0x10);
+		SafePointer<Semaphore> CompilerHostInstance::_sync = CreateSemaphore(1);
 		class ServerServiceCallback : public IServerEventCallback, public IServerMessageCallback
 		{
 			SafePointer<Semaphore> sync;
@@ -219,7 +423,7 @@ namespace Engine
 			ServerServiceCallback(void) : active(false), callbacks(0x10) { progress_complete = progress_total = 0; sync = CreateSemaphore(1); }
 			~ServerServiceCallback(void) { if (thread) thread->Wait(); }
 			virtual void SwitchedToNet(const UUID * uuid) override { active = true; thread = CreateThread(_server_service_thread, this); }
-			virtual void SwitchingFromNet(const UUID * uuid) override { active = false; }
+			virtual void SwitchingFromNet(const UUID * uuid) override { active = false; CompilerHostInstance::TerminateAll(); }
 			virtual void SwitchedFromNet(const UUID * uuid) override {}
 			virtual void NodeConnected(ObjectAddress node) override {}
 			virtual void NodeDisconnected(ObjectAddress node) override {}
@@ -240,6 +444,12 @@ namespace Engine
 				else if (verb == 0x00000301) return true;
 				else if (verb == 0x00000302) return true;
 				else if (verb == 0x00000303) return true;
+				else if (verb == 0x00000411) return true;
+				else if (verb == 0x00000412) return true;
+				else if (verb == 0x00000413) return true;
+				else if (verb == 0x00000414) return true;
+				else if (verb == 0x00000415) return true;
+				else if (verb == 0x00010423) return true;
 				else return false;
 			}
 			virtual void HandleMessage(ObjectAddress from, ObjectAddress to, uint32 verb, const DataBlock * data) override
@@ -305,6 +515,46 @@ namespace Engine
 						ServerSendMessage(0x00000303, MakeObjectAddress(AddressLevelClient, AddressServiceTextLogger, GetAddressNode(GetLoopbackAddress()), AddressInstanceUnique), data);
 					} else if (verb == 0x00000302) {
 						ServerSendMessage(0x00000303, MakeObjectAddress(AddressLevelClient, AddressServiceTextLogger, GetAddressNode(GetLoopbackAddress()), AddressInstanceUnique), data);
+					} else if (verb == 0x00000411) {
+						// TODO: IMPLEMENT
+						// node launch host
+					} else if (verb == 0x00000412) {
+						// TODO: IMPLEMENT
+						// kill current host
+					} else if (verb == 0x00000413) {
+						int sep = -1;
+						for (int i = 0; i < data->Length(); i++) if (data->ElementAt(i) == 0) { sep = i; break; }
+						if (sep >= 0) {
+							SafePointer<Streaming::Stream> stream;
+							auto client_from = from;
+							auto words = string(data->GetBuffer(), -1, Encoding::UTF8);
+							auto watchdog = CreateFunctionalTask([client_from]() {
+								ServerSendMessage(0x00010413, client_from, 0);
+							});
+							auto exit = CreateStructuredTask<string, string>([client_from](const string & exec, const string & root) {
+								SafePointer<DataBlock> result = new DataBlock(0x1000);
+								if (root.Length()) {
+									result->Append(1);
+									CompilerHostInstance::MakePackage(result, root, exec);
+								} else {
+									result->Append(0);
+									SafePointer<DataBlock> error = exec.EncodeSequence(Encoding::UTF8, false);
+									result->Append(*error);
+								}
+								ServerSendMessage(0x00010413, client_from, result);
+							});
+							try {
+								stream = new Streaming::MemoryStream(data->GetBuffer() + sep + 1, data->Length() - sep - 1);
+							} catch (...) { return; }
+							CompilerHostInstance::PerformCompilation(words, stream, &exit->Value1, &exit->Value2, watchdog, exit, client_from);
+						}
+					} else if (verb == 0x00000414) {
+						CompilerHostInstance::TerminateCompiler(from);
+					} else if (verb == 0x00000415) {
+						CompilerHostInstance::HandleCompilerResponce(data);
+					} else if (verb == 0x00010423) {
+						// TODO: IMPLEMENT
+						// queue status responce (from host)
 					}
 				} catch (...) {}
 			}

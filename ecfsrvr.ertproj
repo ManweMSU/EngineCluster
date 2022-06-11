@@ -5,10 +5,15 @@ OutputName = "ecfsrvr"
 Subsystem = "gui"
 UseVersionDefines = true
 CompileList {
-	AAAAAA = "ecfsrvr.cxx"
-	AAAAAB = "ecfsrvr.uiml"
-	AAAAAC = "srvrnet.cxx"
-	AAAAAD = "srvrsrvc.cxx"
+	AAAAAA = "client\\ClusterPackage.cxx"
+	AAAAAB = "ecfsrvr.cxx"
+	AAAAAC = "ecfsrvr.uiml"
+	AAAAAD = "srvrnet.cxx"
+	AAAAAE = "srvrsrvc.cxx"
+}
+"-macosx-arm64" {
+}
+"-macosx-x64" {
 }
 Resources {
 	COM = "@com_en.ecst"
@@ -26,4 +31,24 @@ VersionInformation {
 	Description = "Engine Cluster Framework server application."
 	InternalName = "ecfsrvr"
 	Version = "1.0.0.1"
+}
+"-windows-arm" {
+}
+"-windows-arm64" {
+}
+"-windows-x64" {
+	Attachments {
+		BEAAAA {
+			From = "hostapps\\comhost\\_build\\windows_x64_release\\ecfcomhs.exe"
+			To = "ecfcomhs.exe"
+		}
+	}
+}
+"-windows-x86" {
+	Attachments {
+		BDAAAA {
+			From = "hostapps\\comhost\\_build\\windows_x86_release\\ecfcomhs.exe"
+			To = "ecfcomhs.exe"
+		}
+	}
 }

@@ -55,6 +55,7 @@ namespace Engine
 					PackageFileDesc desc;
 					desc.Path = _archive->GetFileName(file);
 					if (desc.Path.Length() && desc.Path[desc.Path.Length() - 1] == L'\\') {
+						desc.Handle = 0;
 						desc.Path = desc.Path.Fragment(0, desc.Path.Length() - 1);
 						desc.DateCreated = desc.DateAltered = desc.DateAccessed = 0;
 					} else {

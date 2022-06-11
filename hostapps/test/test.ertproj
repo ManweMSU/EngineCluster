@@ -1,0 +1,4 @@
+﻿Subsystem = "console"
+CompileList {
+	AAAAAA = "test.cxx"
+}
