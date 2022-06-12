@@ -72,7 +72,7 @@ namespace Engine
 		}
 		Streaming::Stream * Package::OpenFile(handle file)
 		{
-			auto f = Storage::ArchiveFile(file);
+			uint32 f = intptr(file);
 			if (f < 1 || f > _archive->GetFileCount()) throw InvalidArgumentException();
 			return _archive->QueryFileStream(f);
 		}
@@ -86,7 +86,7 @@ namespace Engine
 			if (word_2.Length()) asset.Words << word_2;
 			uint32 mx = 0;
 			for (auto & a : _assets) {
-				uint32 ah = uint32(a.Handle);
+				uint32 ah = intptr(a.Handle);
 				if (ah > mx) mx = ah;
 			}
 			asset.Handle = handle(mx + 1);
@@ -157,7 +157,7 @@ namespace Engine
 				Storage::NewArchiveFlags::UseFormat64 | Storage::NewArchiveFlags::CreateMetadata);
 			SafePointer<Storage::Registry> manifest = Storage::CreateRegistry();
 			for (auto & a : _assets) {
-				int32 asset_id = int32(a.Handle);
+				int32 asset_id = intptr(a.Handle);
 				DynamicString asset_words;
 				for (auto & w : a.Words) {
 					if (asset_words.Length()) asset_words << L"-";
@@ -184,7 +184,7 @@ namespace Engine
 			for (int i = 0; i < _files.Length(); i++) {
 				auto & file = _files[i];
 				Storage::ArchiveFile file_id = i + 2;
-				uint32 custom = uint32(file.asset);
+				uint32 custom = intptr(file.asset);
 				arc->SetFileCustom(file_id, custom);
 				if (file.file_source.Length()) {
 					arc->SetFileName(file_id, file.file_name);

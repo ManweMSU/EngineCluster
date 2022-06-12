@@ -191,6 +191,7 @@ dialog ShowNodeInfo {
 	DialogFrame {
 		position { 0, 0, z 550, z 400 }
 		Captioned Title TextNodeInfo CloseButton Sizeble
+		MinimalWidth z 400 MinimalHeight z 250
 		ListView {
 			position { z 5, z 5, w 1 z -5, w 1 z -38 } ID 101
 			ListViewColumn {
@@ -217,6 +218,7 @@ dialog ShowServices {
 	DialogFrame {
 		position { 0, 0, z 550, z 400 }
 		Captioned Title TextNodeServices CloseButton Sizeble
+		MinimalWidth z 400 MinimalHeight z 250
 		ListView {
 			position { z 5, z 5, w 1 z -5, w 1 z -38 } ID 101
 			ListViewColumn {

@@ -4,33 +4,21 @@ NoDockIcon = true
 OutputName = "ecfsrvr"
 Subsystem = "gui"
 UseVersionDefines = true
-CompileList {
-	AAAAAA = "client\\ClusterPackage.cxx"
-	AAAAAB = "ecfsrvr.cxx"
-	AAAAAC = "ecfsrvr.uiml"
-	AAAAAD = "srvrnet.cxx"
-	AAAAAE = "srvrsrvc.cxx"
-}
 "-macosx-arm64" {
-}
-"-macosx-x64" {
-}
-Resources {
-	COM = "@com_en.ecst"
-	TRAY = "artwork\\icon_tray.eiwv"
-	ru {
-		COM = "@com_ru.ecst"
+	Attachments {
+		CGAAAA {
+			From = "hostapps/comhost/_build/macosx_arm64_release/ecfcomhs"
+			To = "ecfcomhs"
+		}
 	}
 }
-VersionInformation {
-	ApplicationIdentifier = "ClusterFrameworkServer"
-	ApplicationName = "Engine Cluster Framework Server"
-	CompanyIdentifier = "EngineSoftware"
-	CompanyName = "Engine Software"
-	Copyright = "© Engine Software. 2022"
-	Description = "Engine Cluster Framework server application."
-	InternalName = "ecfsrvr"
-	Version = "1.0.0.1"
+"-macosx-x64" {
+	Attachments {
+		CEAAAA {
+			From = "hostapps/comhost/_build/macosx_x64_release/ecfcomhs"
+			To = "ecfcomhs"
+		}
+	}
 }
 "-windows-arm" {
 }
@@ -51,4 +39,28 @@ VersionInformation {
 			To = "ecfcomhs.exe"
 		}
 	}
+}
+CompileList {
+	AAAAAA = "client\\ClusterPackage.cxx"
+	AAAAAB = "ecfsrvr.cxx"
+	AAAAAC = "ecfsrvr.uiml"
+	AAAAAD = "srvrnet.cxx"
+	AAAAAE = "srvrsrvc.cxx"
+}
+Resources {
+	COM = "@com_en.ecst"
+	TRAY = "artwork\\icon_tray.eiwv"
+	ru {
+		COM = "@com_ru.ecst"
+	}
+}
+VersionInformation {
+	ApplicationIdentifier = "ClusterFrameworkServer"
+	ApplicationName = "Engine Cluster Framework Server"
+	CompanyIdentifier = "EngineSoftware"
+	CompanyName = "Engine Software"
+	Copyright = "© Engine Software. 2022"
+	Description = "Engine Cluster Framework server application."
+	InternalName = "ecfsrvr"
+	Version = "1.0.0.1"
 }

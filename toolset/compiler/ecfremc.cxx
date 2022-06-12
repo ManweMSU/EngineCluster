@@ -18,7 +18,7 @@ struct {
 
 Console console;
 SafePointer<Client> client;
-SafePointer<Semaphore> sync;
+SafePointer<Semaphore> sync_sem;
 string activity, error;
 
 void AddDirectory(PackageBuilder * package, handle asset, const string & path, const string & prefix)
@@ -197,9 +197,9 @@ int WorkerThread(void * arg_ptr)
 		}
 		SafePointer<DataBlock> payload = words.ToString().EncodeSequence(Encoding::UTF8, true);
 		payload->Append(*package);
-		sync->Wait();
+		sync_sem->Wait();
 		activity = L"Waiting for the remote compiler";
-		sync->Open();
+		sync_sem->Open();
 		handler.Prepare();
 		client->SendMessage(0x00000413, state.compile_on, payload);
 		package.SetReference(0);
@@ -208,9 +208,9 @@ int WorkerThread(void * arg_ptr)
 		auto err = handler.GetError();
 		if (err.Length()) { error = err; return 5; }
 		SafePointer<DataBlock> data = handler.GetPackage();
-		sync->Wait();
+		sync_sem->Wait();
 		activity = L"Unpacking the package built";
-		sync->Open();
+		sync_sem->Open();
 		SafePointer<Stream> package_stream = new MemoryStream(data->GetBuffer(), data->Length());
 		data.SetReference(0);
 		SafePointer<Package> result = new Package(package_stream);
@@ -278,7 +278,7 @@ int Main(void)
 			try {
 				if (!state.node_address.Length()) throw InvalidArgumentException();
 				node = state.node_address.ToUInt64(HexadecimalBase);
-				if (node < 0x10000) node = 0x0100000000000000UL | (node << 4);
+				if (node < 0x10000) node = 0x0100000000000000UL | (node << 16);
 			} catch (...) {
 				try {
 					node = 0;
@@ -292,15 +292,15 @@ int Main(void)
 			}
 			state.compile_on = node;
 			activity = L"Creating a source file package";
-			sync = CreateSemaphore(1);
+			sync_sem = CreateSemaphore(1);
 			SafePointer<Thread> thread = CreateThread(WorkerThread);
 			if (!thread) throw Exception();
 			int counter = 0;
 			while (!thread->Exited()) {
-				sync->Wait();
+				sync_sem->Wait();
 				console.ClearLine();
 				console << TextColor(ConsoleColor::Yellow) << activity << TextColor(ConsoleColor::Default) << string(L'.', counter + 1);
-				sync->Open();
+				sync_sem->Open();
 				counter = (counter + 1) % 3;
 				Sleep(500);
 			}
@@ -308,7 +308,9 @@ int Main(void)
 			auto code = thread->GetExitCode();
 			console.ClearLine();
 			if (code) {
-				console << TextColor(ConsoleColor::Red) << error << TextColor(ConsoleColor::Default) << LineFeed();
+				console << TextColor(ConsoleColor::Red) << L"Failed with an error: " << error << TextColor(ConsoleColor::Default) << LineFeed();
+				client->Disconnect();
+				client.SetReference(0);
 				return code;
 			}
 			console << TextColor(ConsoleColor::Green) << L"Succeed" << TextColor(ConsoleColor::Default) << LineFeed();
@@ -329,6 +331,8 @@ int Main(void)
 			console << L"  -p      - overrides port of the primary node to connect." << LineFeed() << LineFeed();
 		}
 	} catch (...) {
+		client->Disconnect();
+		client.SetReference(0);
 		console << TextColor(ConsoleColor::Red) << L"Failed with an exception." << TextColor(ConsoleColor::Default) << LineFeed();
 		return 1;
 	}

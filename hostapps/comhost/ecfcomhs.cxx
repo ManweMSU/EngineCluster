@@ -26,10 +26,10 @@ void SendAnswer(Client * client, ObjectAddress client_entity, uint32 status, con
 
 int Main(void)
 {
-	CompilerHostEnvironmentInit();
 	try {
 		SafePointer< Array<string> > args = GetCommandLine();
 		if (args->Length() < 5) return 1;
+		CompilerHostEnvironmentInit();
 		auto project = args->ElementAt(1);
 		auto client_addr = args->ElementAt(2);
 		auto words = args->ElementAt(3);
