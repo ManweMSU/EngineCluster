@@ -37,6 +37,8 @@ namespace Engine
 			uint ProgressTotal;
 		};
 
+		Network::Address MakeNetworkAddress(const string & from);
+
 		class IMessageCallback
 		{
 		public:

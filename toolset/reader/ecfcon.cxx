@@ -123,13 +123,7 @@ bool ParseCommandLine(void)
 			for (int j = 1; j < a.Length(); j++) {
 				if (a[j] == L'i' && i < args->Length() - 1) {
 					i++;
-					auto domain = args->ElementAt(i);
-					try {
-						SafePointer< Array<Network::AddressEntity> > ents = Network::GetAddressByHost(domain,
-							ClusterServerDefaultPort, Network::SocketAddressDomain::IPv6, Network::SocketProtocol::TCP);
-						if (!ents || !ents->Length()) throw InvalidArgumentException();
-						client->SetConnectionIP(ents->FirstElement().EntityAddress);
-					} catch (...) { return false; }
+					try { client->SetConnectionIP(MakeNetworkAddress(args->ElementAt(i))); } catch (...) { return false; }
 				} else if (a[j] == L'p' && i < args->Length() - 1) {
 					i++;
 					auto port = args->ElementAt(i);

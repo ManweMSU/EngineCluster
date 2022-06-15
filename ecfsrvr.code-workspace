@@ -4,10 +4,5 @@
 			"path": "."
 		}
 	],
-	"settings": {
-		"files.associations": {
-			"chrono": "cpp",
-			"xlocale": "cpp"
-		}
-	}
+	"settings": {}
 }

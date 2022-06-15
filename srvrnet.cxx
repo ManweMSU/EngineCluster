@@ -182,6 +182,41 @@ namespace Engine
 			clients << client;
 			return client.address;
 		}
+		Network::Address MakeNetworkAddress(const string & from)
+		{
+			if (from.FindFirst(L'.') != -1) {
+				auto parts = from.Split(L'.');
+				if (parts.Length() != 4) throw InvalidArgumentException();
+				uint32 p1 = parts[0].ToUInt32();
+				uint32 p2 = parts[1].ToUInt32();
+				uint32 p3 = parts[2].ToUInt32();
+				uint32 p4 = parts[3].ToUInt32();
+				if (p1 > 0xFF || p2 > 0xFF || p3 > 0xFF || p4 > 0xFF) throw InvalidArgumentException();
+				return Network::Address::CreateIPv4((p1 << 24) | (p2 << 16) | (p3 << 8) | p4);
+			} else if (from.FindFirst(L':') != -1) {
+				auto parts = from.Split(L':');
+				int zeros_index = -1;
+				for (int i = 0; i < parts.Length(); i++) if (!parts[i].Length()) {
+					zeros_index = i;
+					for (int j = i + 1; j < parts.Length(); j++) if (!parts[j].Length()) {
+						parts.Remove(j);
+						j--;
+					}
+					parts.Remove(i);
+					break;
+				}
+				if (parts.Length() > 8) throw InvalidArgumentException();
+				if (parts.Length() < 8 && zeros_index == -1) throw InvalidArgumentException();
+				if (zeros_index >= 0) while (parts.Length() < 8) parts.Insert(L"0", zeros_index);
+				Array<uint32> words(0x8);
+				for (auto & p : parts) {
+					uint32 w = p.ToUInt32(HexadecimalBase);
+					if (w > 0xFFFF) throw InvalidArgumentException();
+					words << w;
+				}
+				return Network::Address::CreateIPv6((words[6] << 16) | words[7], (words[4] << 16) | words[5], (words[2] << 16) | words[3], (words[0] << 16) | words[1]);
+			} else throw InvalidArgumentException();
+		}
 
 		void ServiceShutdown(void)
 		{
@@ -648,10 +683,7 @@ namespace Engine
 		{
 			auto req = reinterpret_cast<JoinNetRequest *>(arg_ptr);
 			try {
-				SafePointer< Array<Network::AddressEntity> > addr = Network::GetAddressByHost(req->address_notation,
-					req->port_to, Network::SocketAddressDomain::IPv6, Network::SocketProtocol::TCP);
-				if (!addr || !addr->Length()) throw Exception();
-				auto address = addr->FirstElement().EntityAddress;
+				auto address = MakeNetworkAddress(req->address_notation);
 				SafePointer<Socket> socket = CreateSocket(Network::SocketAddressDomain::IPv6, Network::SocketProtocol::TCP);
 				socket->Connect(address, req->port_to);
 				UUID zero;

@@ -259,12 +259,7 @@ int Main(void)
 			ObjectAddress node;
 			try {
 				client = new Client;
-				if (state.ip.Length()) {
-					SafePointer< Array<Network::AddressEntity> > ents = Network::GetAddressByHost(state.ip,
-						ClusterServerDefaultPort, Network::SocketAddressDomain::IPv6, Network::SocketProtocol::TCP);
-					if (!ents || !ents->Length()) throw InvalidArgumentException();
-					client->SetConnectionIP(ents->FirstElement().EntityAddress);
-				}
+				if (state.ip.Length()) client->SetConnectionIP(MakeNetworkAddress(state.ip));
 				client->SetConnectionPort(state.port);
 				client->SetConnectionServiceID(L"engine.cluster.compiler.client");
 				client->SetConnectionServiceName(L"Cluster Compiler Client");
