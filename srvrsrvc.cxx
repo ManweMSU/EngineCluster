@@ -44,6 +44,31 @@ namespace Engine
 				ENGINE_DEFINE_REFLECTED_GENERIC_ARRAY(NodeStruct, nodes);
 			ENGINE_END_REFLECTED_CLASS
 		}
+		namespace Words
+		{
+			#ifdef ENGINE_WINDOWS
+			constexpr widechar * OperatingSystem = PackageAssetWindows;
+			#else
+			#ifdef ENGINE_MACOSX
+			constexpr widechar * OperatingSystem = PackageAssetMacOS;
+			#else
+			constexpr widechar * OperatingSystem = L"?";
+			#endif
+			#endif
+			#ifdef ENGINE_ARM
+			#ifdef ENGINE_X64
+			constexpr widechar * Architecture = PackageAssetARM64;
+			#else
+			constexpr widechar * Architecture = PackageAssetARM;
+			#endif
+			#else
+			#ifdef ENGINE_X64
+			constexpr widechar * Architecture = PackageAssetX64;
+			#else
+			constexpr widechar * Architecture = PackageAssetX86;
+			#endif
+			#endif
+		}
 
 		NodeStatusInfo::NodeStatusInfo(void) {}
 		NodeStatusInfo::NodeStatusInfo(int) {}
@@ -392,8 +417,228 @@ namespace Engine
 				} catch (...) {}
 			}
 		};
+		class ComputationRentClass
+		{
+			static SafePointer<Process> _process;
+			static SafePointer<Semaphore> _sync;
+			static SafePointer<DataBlock> _data;
+			static int _state; // 0 - idle, 1 - init state, 2 - ready
+			static ObjectAddress _client, _localhost;
+			static bool _allowed;
+
+			static void SendRentResponce(ObjectAddress client, uint status, ObjectAddress host_address)
+			{
+				try {
+					SafePointer<DataBlock> data = new DataBlock(1);
+					if (host_address) {
+						data->SetLength(12);
+						MemoryCopy(data->GetBuffer(), &status, 4);
+						MemoryCopy(data->GetBuffer() + 4, &host_address, 8);
+					} else {
+						data->SetLength(4);
+						MemoryCopy(data->GetBuffer(), &status, 4);
+					}
+					ServerSendMessage(0x00010411, client, data);
+				} catch (...) {}
+			}
+			static int WorkerThread(void * arg_ptr)
+			{
+				string dlfile;
+				ObjectAddress client;
+				SafePointer<Process> process;
+				ServerServiceUpdateProgressStatus(0, 0xFFFFFFFF);
+				try {
+					SafePointer<DataBlock> data;
+					_sync->Wait();
+					data.SetRetain(_data);
+					client = _client;
+					_data.SetReference(0);
+					_sync->Open();
+					SafePointer<Streaming::MemoryStream> stream = new Streaming::MemoryStream(data->GetBuffer(), data->Length());
+					data.SetReference(0);
+					SafePointer<Package> package = new Package(stream);
+					auto binary_asset = package->FindAsset(Words::OperatingSystem, Words::Architecture);
+					auto sources_asset = package->FindAsset(PackageAssetSources);
+					if (binary_asset) {
+						Time last_time = Time::GetCurrentTime();
+						auto root_path = IO::ExpandPath(IO::Path::GetDirectory(IO::GetExecutablePath()) + L"/binary/" +
+							IO::Path::GetFileNameWithoutExtension(binary_asset->RootFile));
+						dlfile = IO::ExpandPath(root_path + L"/" + binary_asset->RootFile);
+						IO::CreateDirectoryTree(root_path);
+						SafePointer< Array<PackageFileDesc> > files = package->EnumerateFiles(binary_asset->Handle);
+						for (auto & f : *files) {
+							Time time = Time::GetCurrentTime();
+							if ((time - last_time).Ticks >= 1000) {
+								SendRentResponce(client, HostIsStarting, 0);
+								last_time = time;
+							}
+							if (f.Handle) {
+								try {
+									Streaming::FileStream to(root_path + L"/" + f.Path, Streaming::AccessRead, Streaming::OpenExisting);
+									if (IO::DateTime::GetFileAlterTime(to.Handle()) >= f.DateAltered) continue;
+								} catch (...) {}
+								Streaming::FileStream to(root_path + L"/" + f.Path, Streaming::AccessReadWrite, Streaming::CreateAlways);
+								SafePointer<Streaming::Stream> from = package->OpenFile(f.Handle);
+								from->CopyTo(&to);
+								IO::DateTime::SetFileCreationTime(to.Handle(), f.DateCreated);
+								IO::DateTime::SetFileAlterTime(to.Handle(), f.DateAltered);
+								IO::DateTime::SetFileAccessTime(to.Handle(), f.DateAccessed);
+							} else {
+								IO::CreateDirectoryTree(root_path + L"/" + f.Path);
+							}
+						}
+					} else if (sources_asset) {
+						SafePointer<Semaphore> con_sem = CreateSemaphore(0);
+						string dlpath;
+						string words = string(Words::OperatingSystem) + L"-" + string(Words::Architecture);
+						auto watchdog = CreateFunctionalTask([client]() { SendRentResponce(client, HostIsStarting, 0); });
+						auto on_complete = CreateFunctionalTask([con_sem]() { con_sem->Open(); });
+						CompilerHostInstance::PerformCompilation(words, stream, &dlfile, &dlpath, watchdog, on_complete, GetLoopbackAddress());
+						con_sem->Wait();
+						if (!dlpath.Length()) {
+							_sync->Wait();
+							if (dlfile.Length()) SendRentResponce(_client, HostCompilationFailed, 0);
+							else SendRentResponce(_client, HostExtractionFailed, 0);
+							ServerServiceUpdateProgressStatus(0, 0);
+							_state = 0;
+							_client = _localhost = 0;
+							_sync->Open();
+							return 0;
+						}
+					} else {
+						_sync->Wait();
+						SendRentResponce(_client, HostNoArchitecture, 0);
+						ServerServiceUpdateProgressStatus(0, 0);
+						_state = 0;
+						_client = _localhost = 0;
+						_sync->Open();
+						return 0;
+					}
+					SendRentResponce(client, HostIsStarting, 0);
+				} catch (...) {
+					_sync->Wait();
+					SendRentResponce(_client, HostExtractionFailed, 0);
+					ServerServiceUpdateProgressStatus(0, 0);
+					_state = 0;
+					_client = _localhost = 0;
+					_sync->Open();
+					return 0;
+				}
+				try {
+					Array<string> cmds(0x10);
+					cmds << dlfile;
+					cmds << string(GetServerCurrentPort());
+					cmds << string(client, HexadecimalBase, 16);
+					process = CreateCommandProcess(L"ecfhost", &cmds);
+					if (!process) throw Exception();
+				} catch (...) {
+					_sync->Wait();
+					SendRentResponce(_client, HostLaunchFailed, 0);
+					ServerServiceUpdateProgressStatus(0, 0);
+					_state = 0;
+					_client = _localhost = 0;
+					_sync->Open();
+					return 0;
+				}
+				while (true) {
+					_sync->Wait();
+					if (_state == 2) {
+						_sync->Open();
+						break;
+					} else if (_state == 1 && process->Exited()) {
+						SendRentResponce(_client, HostInitFailed, 0);
+						ServerServiceUpdateProgressStatus(0, 0);
+						_state = 0;
+						_client = _localhost = 0;
+						_sync->Open();
+						return 0;
+					}
+					_sync->Open();
+					Sleep(1000);
+					SendRentResponce(client, HostIsStarting, 0);
+				}
+				_sync->Wait();
+				_process.SetRetain(process);
+				_state = 2;
+				SendRentResponce(_client, HostStarted, _localhost);
+				_sync->Open();
+				process->Wait();
+				_sync->Wait();
+				_process.SetReference(0);
+				_data.SetReference(0);
+				_state = 0;
+				_client = _localhost = 0;
+				ServerServiceUpdateProgressStatus(0, 0);
+				_sync->Open();
+				return 0;
+			}
+		public:
+			static void PerformRent(ObjectAddress client, const DataBlock * binaries)
+			{
+				_sync->Wait();
+				if (_state || _process) {
+					SendRentResponce(client, HostBusyNow, 0);
+					_sync->Open();
+					return;
+				}
+				if (!_allowed) {
+					SendRentResponce(client, HostDiscarded, 0);
+					_sync->Open();
+					return;
+				}
+				try {
+					SafePointer<DataBlock> data = new DataBlock(*binaries);
+					_client = client;
+					_data.SetRetain(data);
+					SafePointer<Thread> thread = CreateThread(WorkerThread);
+					if (!thread) throw Exception();
+				} catch (...) {
+					_client = 0;
+					_data.SetReference(0);
+					SendRentResponce(client, HostInitFailed, 0);
+					_sync->Open();
+					return;
+				}
+				_state = 1;
+				_sync->Open();
+			}
+			static void HandleHostStarted(ObjectAddress host)
+			{
+				_sync->Wait();
+				if (_state == 1) {
+					_localhost = host;
+					_state = 2;
+				}
+				_sync->Open();
+			}
+			static void KillHost(ObjectAddress sender)
+			{
+				_sync->Wait();
+				if (_state == 2 && _process) {
+					_process->Terminate();
+					_process.SetReference(0);
+					_data.SetReference(0);
+					_state = 0;
+					_client = _localhost = 0;
+					ServerServiceUpdateProgressStatus(0, 0);
+				}
+				_sync->Open();
+				if (GetAddressLevel(sender) != AddressLevelNode) ServerSendMessage(0x00000412, MakeObjectAddress(
+					AddressLevelNode, AddressServiceNode, AddressNodeUndefined, AddressInstanceUnique), 0);
+			}
+			static void AllowTasks(bool allow) { _sync->Wait(); _allowed = allow; _sync->Open(); }
+		};
+		
 		ObjectArray<CompilerHostInstance> CompilerHostInstance::_compilers(0x10);
 		SafePointer<Semaphore> CompilerHostInstance::_sync = CreateSemaphore(1);
+		SafePointer<Process> ComputationRentClass::_process;
+		SafePointer<Semaphore> ComputationRentClass::_sync = CreateSemaphore(1);
+		SafePointer<DataBlock> ComputationRentClass::_data;
+		int ComputationRentClass::_state = 0;
+		ObjectAddress ComputationRentClass::_client = 0;
+		ObjectAddress ComputationRentClass::_localhost = 0;
+		bool ComputationRentClass::_allowed = false;
+
 		class ServerServiceCallback : public IServerEventCallback, public IServerMessageCallback
 		{
 			SafePointer<Semaphore> sync;
@@ -422,8 +667,18 @@ namespace Engine
 		public:
 			ServerServiceCallback(void) : active(false), callbacks(0x10) { progress_complete = progress_total = 0; sync = CreateSemaphore(1); }
 			~ServerServiceCallback(void) { if (thread) thread->Wait(); }
-			virtual void SwitchedToNet(const UUID * uuid) override { active = true; thread = CreateThread(_server_service_thread, this); }
-			virtual void SwitchingFromNet(const UUID * uuid) override { active = false; CompilerHostInstance::TerminateAll(); }
+			virtual void SwitchedToNet(const UUID * uuid) override
+			{
+				active = true;
+				thread = CreateThread(_server_service_thread, this);
+				ComputationRentClass::AllowTasks(true);
+			}
+			virtual void SwitchingFromNet(const UUID * uuid) override
+			{
+				active = false;
+				CompilerHostInstance::TerminateAll();
+				ComputationRentClass::KillHost(0);
+			}
 			virtual void SwitchedFromNet(const UUID * uuid) override {}
 			virtual void NodeConnected(ObjectAddress node) override {}
 			virtual void NodeDisconnected(ObjectAddress node) override {}
@@ -445,10 +700,12 @@ namespace Engine
 				else if (verb == 0x00000302) return true;
 				else if (verb == 0x00000303) return true;
 				else if (verb == 0x00000411) return true;
+				else if (verb == 0x00010411) return true;
 				else if (verb == 0x00000412) return true;
 				else if (verb == 0x00000413) return true;
 				else if (verb == 0x00000414) return true;
 				else if (verb == 0x00000415) return true;
+				else if (verb == 0x00000416) return true;
 				else if (verb == 0x00010423) return true;
 				else return false;
 			}
@@ -516,11 +773,11 @@ namespace Engine
 					} else if (verb == 0x00000302) {
 						ServerSendMessage(0x00000303, MakeObjectAddress(AddressLevelClient, AddressServiceTextLogger, GetAddressNode(GetLoopbackAddress()), AddressInstanceUnique), data);
 					} else if (verb == 0x00000411) {
-						// TODO: IMPLEMENT
-						// node launch host
+						ComputationRentClass::PerformRent(from, data);
+					} else if (verb == 0x00010411) {
+						ComputationRentClass::HandleHostStarted(from);
 					} else if (verb == 0x00000412) {
-						// TODO: IMPLEMENT
-						// kill current host
+						ComputationRentClass::KillHost(from);
 					} else if (verb == 0x00000413) {
 						int sep = -1;
 						for (int i = 0; i < data->Length(); i++) if (data->ElementAt(i) == 0) { sep = i; break; }
@@ -552,11 +809,26 @@ namespace Engine
 						CompilerHostInstance::TerminateCompiler(from);
 					} else if (verb == 0x00000415) {
 						CompilerHostInstance::HandleCompilerResponce(data);
+					} else if (verb == 0x00000416) {
+						if (data && data->Length()) ServerServiceAllowTasks(data->ElementAt(0));
 					} else if (verb == 0x00010423) {
-						// TODO: IMPLEMENT
-						// queue status responce (from host)
+						uint pending, inproc, complete, total;
+						if (data && data->Length() >= 16) {
+							MemoryCopy(&pending, data->GetBuffer(), 4);
+							MemoryCopy(&inproc, data->GetBuffer() + 4, 4);
+							MemoryCopy(&complete, data->GetBuffer() + 8, 4);
+							MemoryCopy(&total, data->GetBuffer() + 12, 4);
+							ServerServiceUpdateProgressStatus(complete, total);
+						}
 					}
 				} catch (...) {}
+			}
+			void UpdateProgressStatus(uint32 complete, uint32 total)
+			{
+				sync->Wait();
+				progress_complete = complete;
+				progress_total = total;
+				sync->Open();
 			}
 			void RegisterCallback(IServerServiceNotificationCallback * callback)
 			{
@@ -595,6 +867,17 @@ namespace Engine
 			data->SetLength(4);
 			MemoryCopy(data->GetBuffer(), &control_verb, 4);
 			ServerSendMessage(0x00000205, to, data);
+		}
+		void ServerServiceUpdateProgressStatus(uint32 complete, uint32 total) { if (server_service_callback) server_service_callback->UpdateProgressStatus(complete, total); }
+		void ServerServiceTerminateHost(void) { ComputationRentClass::KillHost(0); }
+		void ServerServiceAllowTasks(bool allow) { ComputationRentClass::AllowTasks(allow); }
+		void ServerServiceAllowTasks(ObjectAddress node_on, bool allow)
+		{
+			try {
+				SafePointer<DataBlock> data = new DataBlock(1);
+				data->Append(allow ? 1 : 0);
+				ServerSendMessage(0x00000416, node_on, data);
+			} catch (...) {}
 		}
 		void ServerServiceRegisterCallback(IServerServiceNotificationCallback * callback) { if (server_service_callback) server_service_callback->RegisterCallback(callback); }
 		void ServerServiceUnregisterCallback(IServerServiceNotificationCallback * callback) { if (server_service_callback) server_service_callback->UnregisterCallback(callback); }

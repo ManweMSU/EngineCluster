@@ -1,5 +1,6 @@
 #pragma once
 
+#include "client/ClusterTaskBase.h"
 #include "srvrnet.h"
 
 namespace Engine
@@ -54,6 +55,10 @@ namespace Engine
 		void ServerServiceSendServicesRequest(ObjectAddress to);
 		void ServerServiceSendInformationRequest(ObjectAddress to);
 		void ServerServiceSendControlMessage(ObjectAddress to, uint control_verb);
+		void ServerServiceUpdateProgressStatus(uint32 complete, uint32 total);
+		void ServerServiceTerminateHost(void);
+		void ServerServiceAllowTasks(bool allow);
+		void ServerServiceAllowTasks(ObjectAddress node_on, bool allow);
 		void ServerServiceRegisterCallback(IServerServiceNotificationCallback * callback);
 		void ServerServiceUnregisterCallback(IServerServiceNotificationCallback * callback);
 	}

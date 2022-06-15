@@ -365,6 +365,43 @@ public:
 		CreateModalWindow(interface.Dialog[L"ShowServices"], callback, Rectangle::Entire(), parent);
 	}
 };
+class SelectNodesCallback : public IEventCallback
+{
+	Array<NodeDesc> _nodes;
+public:
+	SelectNodesCallback(void) : _nodes(0x10) {}
+	virtual void Created(IWindow * window) override
+	{
+		InterlockedIncrement(modal_counter);
+		GetRootControl(window)->AddDialogStandardAccelerators();
+		auto list = FindControl(window, 101)->As<Controls::ListBox>();
+		UUID uuid;
+		if (GetServerCurrentNet(&uuid)) {
+			SafePointer< Array<NodeDesc> > nodes = ServerEnumerateNetNodes(&uuid);
+			for (auto & n : *nodes) if (n.online) {
+				_nodes << n;
+				list->AddItem(n.known_name);
+			}
+		}
+	}
+	virtual void Destroyed(IWindow * window) override { InterlockedDecrement(modal_counter); delete this; }
+	virtual void WindowClose(IWindow * window) override { HandleControlEvent(window, 2, ControlEvent::AcceleratorCommand, 0); }
+	virtual void HandleControlEvent(Windows::IWindow * window, int ID, ControlEvent event, Control * sender) override
+	{
+		if (ID == 1) {
+			auto list = FindControl(window, 101)->As<Controls::ListBox>();
+			for (int i = 0; i < _nodes.Length(); i++) {
+				ServerServiceAllowTasks(_nodes[i].ecf_address, list->IsItemSelected(i));
+			}
+			GetWindowSystem()->ExitModalSession(window);
+		} else if (ID == 2) GetWindowSystem()->ExitModalSession(window);
+	}
+	static void SelectNodesDialog(IWindow * parent)
+	{
+		auto callback = new SelectNodesCallback;
+		CreateModalWindow(interface.Dialog[L"SelectNodes"], callback, Rectangle::Entire(), parent);
+	}
+};
 
 class ServerPanelCallback : public IEventCallback, public IServerEventCallback, public IServerServiceNotificationCallback
 {
@@ -381,7 +418,11 @@ public:
 		auto sd = _statuses[node.ecf_address];
 		if (sd && node.online) {
 			if (sd->ProgressTotal) {
-				element.Load = FormatString(*interface.Strings[L"TextReady"], sd->ProgressComplete * 100 / sd->ProgressTotal);
+				if (sd->ProgressTotal == 0xFFFFFFFF) {
+					element.Load = *interface.Strings[L"TextInit"];
+				} else {
+					element.Load = FormatString(*interface.Strings[L"TextReady"], sd->ProgressComplete * 100 / sd->ProgressTotal);
+				}
 			} else {
 				element.Load = *interface.Strings[L"TextIdle"];
 			}
@@ -446,6 +487,7 @@ public:
 		FindControl(window, 202)->Enable(index >= 0 && !connected);
 		FindControl(window, 203)->Enable(connected && MemoryCompare(&selected_uuid, &current_uuid, sizeof(UUID)) == 0);
 		FindControl(window, 204)->Enable(connected && MemoryCompare(&selected_uuid, &current_uuid, sizeof(UUID)) == 0);
+		FindControl(window, 206)->Enable(connected && MemoryCompare(&selected_uuid, &current_uuid, sizeof(UUID)) == 0);
 	}
 	void UpdateNetNodes(IWindow * window)
 	{
@@ -613,6 +655,8 @@ public:
 				GetWindowSystem()->MessageBox(&task->Value1, *interface.Strings[L"TextNodeRemoveConfirmation"], ENGINE_VI_APPNAME,
 					window, MessageBoxButtonSet::YesNo, MessageBoxStyle::Warning, task);
 			}
+		} else if (ID == 206) {
+			SelectNodesCallback::SelectNodesDialog(window);
 		} else if (ID == 301) {
 			auto list = FindControl(window, 201)->As<Controls::ListView>();
 			auto index = list->GetSelectedIndex();
@@ -622,7 +666,7 @@ public:
 			auto index = list->GetSelectedIndex();
 			if (index >= 0) ServerServiceSendInformationRequest(_nodes[index]);
 		} else if (ID == 303) {
-			// TODO: IMPLEMENT
+			ServerServiceTerminateHost();
 		} else if (ID == 304) {
 			auto list = FindControl(window, 201)->As<Controls::ListView>();
 			auto index = list->GetSelectedIndex();
@@ -644,12 +688,6 @@ public:
 			auto index = list->GetSelectedIndex();
 			if (index >= 0) ServerServiceSendControlMessage(_nodes[index], ServerControlHybernatePC);
 		}
-		// TODO: IMPLEMENT PAGE 2
-		// TODO: TIER 7 (COMPUTATION API) - REMOTE COMPILATION
-		// TODO: TIER 8 (COMPUTATION API) - TASK LAUNCHER
-		// TODO: TIER 9 (COMPUTATION API) - TASK HOST INFRASTRUCTURE
-		// TODO: TIER 10 - ABOUT DIALOG
-		// TODO: TIER 11 - MANUALS
 	}
 	void OnNetStatusUpdated(void)
 	{
@@ -671,14 +709,27 @@ public:
 	{
 		if (!main_window) return;
 		uint com = 0, tot = 0;
-		for (auto & v : _statuses.Elements()) { com += v.value.ProgressComplete; tot += v.value.ProgressTotal; }
-		if (tot) {
-			main_window->SetProgressValue(double(com) / double(tot));
-			main_window->SetProgressMode(ProgressDisplayMode::Normal);
-			GetWindowSystem()->SetApplicationBadge(string(com * 100 / tot) + L"%");
+		bool indet = false;
+		for (auto & v : _statuses.Elements()) {
+			if (v.value.ProgressTotal == 0xFFFFFFFF) {
+				indet = true;
+				break;
+			}
+			com += v.value.ProgressComplete;
+			tot += v.value.ProgressTotal;
+		}
+		if (indet) {
+			main_window->SetProgressMode(ProgressDisplayMode::Indeterminated);
+			GetWindowSystem()->SetApplicationBadge(L"...");
 		} else {
-			main_window->SetProgressMode(ProgressDisplayMode::Hide);
-			GetWindowSystem()->SetApplicationBadge(L"");
+			if (tot) {
+				main_window->SetProgressValue(double(com) / double(tot));
+				main_window->SetProgressMode(ProgressDisplayMode::Normal);
+				GetWindowSystem()->SetApplicationBadge(string(com * 100 / tot) + L"%");
+			} else {
+				main_window->SetProgressMode(ProgressDisplayMode::Hide);
+				GetWindowSystem()->SetApplicationBadge(L"");
+			}
 		}
 	}
 	void SetNodeStatus(ObjectAddress address, const NodeStatusInfo & status)
@@ -844,10 +895,12 @@ public:
 	virtual void ShowHelp(void) override
 	{
 		// TODO: IMPLEMENT
+		// TODO: TIER 11 - MANUALS
 	}
 	virtual void ShowAbout(void) override
 	{
 		// TODO: IMPLEMENT
+		// TODO: TIER 10 - ABOUT DIALOG
 	}
 	virtual bool DataExchangeReceive(handle client, const string & verb, const DataBlock * data) override
 	{
@@ -890,62 +943,64 @@ SafePointer<IStatusBarIcon> status_icon;
 
 int Main(void)
 {
-	SafePointer<Codec::Image> status_image;
-	Codec::InitializeDefaultCodecs();
-	{
-		window_visibility_counter = modal_counter = 0;
-		main_window = 0;
-		SafePointer<IScreen> main = GetDefaultScreen();
-		CurrentLocale = GetCurrentUserLocale();
-		if (CurrentLocale != L"ru") CurrentLocale = L"en";
-		CurrentScaleFactor = main->GetDpiScale();
-		if (CurrentScaleFactor > 1.75) CurrentScaleFactor = 2.0;
-		else if (CurrentScaleFactor > 1.25) CurrentScaleFactor = 1.5;
-		else CurrentScaleFactor = 1.0;
-		SafePointer<Stream> icon = QueryResource(L"TRAY");
-		status_image = Codec::DecodeImage(icon);
-		SafePointer<Stream> com_stream = QueryLocalizedResource(L"COM");
-		SafePointer<Storage::StringTable> com = new Storage::StringTable(com_stream);
-		Assembly::SetLocalizedCommonStrings(com);
-		SafePointer<Stream> ui = QueryResource(L"UI");
-		Loader::LoadUserInterfaceFromBinary(interface, ui);
-		greenlight = interface.Texture[L"IconGreenlight"];
-		graylight = interface.Texture[L"IconGreenlightI"];
-		power_self = interface.Texture[L"IconPowerSelf"];
-		power_charging = interface.Texture[L"IconPowerCharging"];
-		power_discharging = interface.Texture[L"IconPowerDischarging"];
-		power_net = interface.Texture[L"IconPowerNet"];
-	}
-	GetWindowSystem()->SetCallback(&main_callback);
-	// {
-	// 	SafePointer<IIPCClient> client = GetWindowSystem()->CreateIPCClient(ENGINE_VI_APPIDENT, ENGINE_VI_COMPANYIDENT);
-	// 	if (client) {
-	// 		if (client->SendData(ECF_IPC_VERB_ACTIVATE, 0, 0, 0)) return 0;
-	// 	}
-	// }
-	//if (!GetWindowSystem()->LaunchIPCServer(ENGINE_VI_APPIDENT, ENGINE_VI_COMPANYIDENT)) return 1;
-	if (!ServerInitialize(&interface)) return 2;
-	if (!GetServerName().Length()) {
-		if (!ServerSetupCallback::RunSetup()) return 0;
-	}
-	ServerServiceInitialize();
-	CreateWindow(interface.Dialog[L"Main"], &panel_callback, Rectangle::Entire());
-	
-	// TODO: REGISTER CALLBACKS:
-	//   COMPUTATION API MESSAGE AND EVENT HANDLERS
+	try {
+		SafePointer<Codec::Image> status_image;
+		Codec::InitializeDefaultCodecs();
+		{
+			window_visibility_counter = modal_counter = 0;
+			main_window = 0;
+			SafePointer<IScreen> main = GetDefaultScreen();
+			CurrentLocale = GetCurrentUserLocale();
+			if (CurrentLocale != L"ru") CurrentLocale = L"en";
+			CurrentScaleFactor = main->GetDpiScale();
+			if (CurrentScaleFactor > 1.75) CurrentScaleFactor = 2.0;
+			else if (CurrentScaleFactor > 1.25) CurrentScaleFactor = 1.5;
+			else CurrentScaleFactor = 1.0;
+			SafePointer<Stream> icon = QueryResource(L"TRAY");
+			status_image = Codec::DecodeImage(icon);
+			SafePointer<Stream> com_stream = QueryLocalizedResource(L"COM");
+			SafePointer<Storage::StringTable> com = new Storage::StringTable(com_stream);
+			Assembly::SetLocalizedCommonStrings(com);
+			SafePointer<Stream> ui = QueryResource(L"UI");
+			Loader::LoadUserInterfaceFromBinary(interface, ui);
+			greenlight = interface.Texture[L"IconGreenlight"];
+			graylight = interface.Texture[L"IconGreenlightI"];
+			power_self = interface.Texture[L"IconPowerSelf"];
+			power_charging = interface.Texture[L"IconPowerCharging"];
+			power_discharging = interface.Texture[L"IconPowerDischarging"];
+			power_net = interface.Texture[L"IconPowerNet"];
+		}
+		GetWindowSystem()->SetCallback(&main_callback);
+		// {
+		// 	SafePointer<IIPCClient> client = GetWindowSystem()->CreateIPCClient(ENGINE_VI_APPIDENT, ENGINE_VI_COMPANYIDENT);
+		// 	if (client) {
+		// 		if (client->SendData(ECF_IPC_VERB_ACTIVATE, 0, 0, 0)) return 0;
+		// 	}
+		// }
+		//if (!GetWindowSystem()->LaunchIPCServer(ENGINE_VI_APPIDENT, ENGINE_VI_COMPANYIDENT)) return 1;
+		if (!ServerInitialize(&interface)) return 2;
+		if (!GetServerName().Length()) {
+			if (!ServerSetupCallback::RunSetup()) return 0;
+		}
+		ServerServiceInitialize();
+		CreateWindow(interface.Dialog[L"Main"], &panel_callback, Rectangle::Entire());
+		
+		// TODO: IMPLEMENT
+		// TODO: TIER 9 (COMPUTATION API) - TASK HOST INFRASTRUCTURE
 
-	status_icon = GetWindowSystem()->CreateStatusBarIcon();
-	status_icon->SetCallback(&main_callback);
-	status_icon->SetIconColorUsage(StatusBarIconColorUsage::Colourfull);
-	status_icon->SetIcon(status_image);
-	status_icon->SetEventID(1);
-	status_icon->PresentIcon(true);
-	status_image.SetReference(0);
-	ServerPerformAutoconnect();
-	GetWindowSystem()->RunMainLoop();
-	status_icon->PresentIcon(false);
-	status_icon.SetReference(0);
-	ServerShutdown();
-	ServerServiceShutdown();
+		status_icon = GetWindowSystem()->CreateStatusBarIcon();
+		status_icon->SetCallback(&main_callback);
+		status_icon->SetIconColorUsage(StatusBarIconColorUsage::Colourfull);
+		status_icon->SetIcon(status_image);
+		status_icon->SetEventID(1);
+		status_icon->PresentIcon(true);
+		status_image.SetReference(0);
+		ServerPerformAutoconnect();
+		GetWindowSystem()->RunMainLoop();
+		status_icon->PresentIcon(false);
+		status_icon.SetReference(0);
+		ServerShutdown();
+		ServerServiceShutdown();
+	} catch (...) { return 1; }
 	return 0;
 }

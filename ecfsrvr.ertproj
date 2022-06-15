@@ -4,6 +4,13 @@ NoDockIcon = true
 OutputName = "ecfsrvr"
 Subsystem = "gui"
 UseVersionDefines = true
+CompileList {
+	AAAAAA = "client\\ClusterPackage.cxx"
+	AAAAAB = "ecfsrvr.cxx"
+	AAAAAC = "ecfsrvr.uiml"
+	AAAAAD = "srvrnet.cxx"
+	AAAAAE = "srvrsrvc.cxx"
+}
 "-macosx-arm64" {
 	Attachments {
 		CGAAAA {
@@ -19,33 +26,6 @@ UseVersionDefines = true
 			To = "ecfcomhs"
 		}
 	}
-}
-"-windows-arm" {
-}
-"-windows-arm64" {
-}
-"-windows-x64" {
-	Attachments {
-		BEAAAA {
-			From = "hostapps\\comhost\\_build\\windows_x64_release\\ecfcomhs.exe"
-			To = "ecfcomhs.exe"
-		}
-	}
-}
-"-windows-x86" {
-	Attachments {
-		BDAAAA {
-			From = "hostapps\\comhost\\_build\\windows_x86_release\\ecfcomhs.exe"
-			To = "ecfcomhs.exe"
-		}
-	}
-}
-CompileList {
-	AAAAAA = "client\\ClusterPackage.cxx"
-	AAAAAB = "ecfsrvr.cxx"
-	AAAAAC = "ecfsrvr.uiml"
-	AAAAAD = "srvrnet.cxx"
-	AAAAAE = "srvrsrvc.cxx"
 }
 Resources {
 	COM = "@com_en.ecst"
@@ -63,4 +43,32 @@ VersionInformation {
 	Description = "Engine Cluster Framework server application."
 	InternalName = "ecfsrvr"
 	Version = "1.0.0.1"
+}
+"-windows-arm" {
+}
+"-windows-arm64" {
+}
+"-windows-x64" {
+	Attachments {
+		BEAAAA {
+			From = "hostapps\\comhost\\_build\\windows_x64_release\\ecfcomhs.exe"
+			To = "ecfcomhs.exe"
+		}
+		BEAAAB {
+			From = "hostapps\\taskhost\\_build\\windows_x64_release\\ecfhost.exe"
+			To = "ecfhost.exe"
+		}
+	}
+}
+"-windows-x86" {
+	Attachments {
+		BDAAAA {
+			From = "hostapps\\comhost\\_build\\windows_x86_release\\ecfcomhs.exe"
+			To = "ecfcomhs.exe"
+		}
+		BDAAAB {
+			From = "hostapps\\taskhost\\_build\\windows_x86_release\\ecfhost.exe"
+			To = "ecfhost.exe"
+		}
+	}
 }

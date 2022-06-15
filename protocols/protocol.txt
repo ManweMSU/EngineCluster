@@ -80,9 +80,13 @@ TO SERVER
   0001 0413 - remote compile responce
   0000 0414 - kill current compiler
   0000 0415 - remote compiler notification
+  0000 0416 - allow/disallow node to launch tasks
 TO HOST
-  0000 0421 - schedule task
-  0000 0422 - report queue status
+  0000 0421 - initialize with communication table
+  0001 0421 - initialize with communication table responce
+  0000 0422 - schedule task
+  0001 0422 - schedule task responce
+  0000 0423 - report queue status
   0001 0423 - queue status responce
   0000 0424 - terminate
 TO JOB CLIENT
