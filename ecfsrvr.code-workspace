@@ -4,14 +4,5 @@
 			"path": "."
 		}
 	],
-	"settings": {
-		"files.associations": {
-			"xutility": "cpp",
-			"array": "cpp",
-			"vector": "cpp",
-			"xstring": "cpp",
-			"chrono": "cpp",
-			"*.rh": "cpp"
-		}
-	}
+	"settings": {}
 }

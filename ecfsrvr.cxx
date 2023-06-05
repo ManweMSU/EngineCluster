@@ -21,6 +21,7 @@ IBitmap * greenlight, * graylight, * power_self, * power_charging, * power_disch
 IWindow * main_window, * about_window;
 uint window_visibility_counter;
 uint modal_counter;
+bool is_init_mode;
 InterfaceTemplate interface;
 
 namespace Structures
@@ -48,7 +49,7 @@ void RegisterWindow(IWindow * window)
 void UnregisterWindow(IWindow * window)
 {
 	for (int i = 0; i < windows.Length(); i++) if (windows[i] == window) { windows.Remove(i); break; }
-	if (!windows.Length()) GetWindowSystem()->ExitMainLoop();
+	if (!windows.Length() && !is_init_mode) GetWindowSystem()->ExitMainLoop();
 }
 void DisplayWindow(IWindow * window)
 {
@@ -63,7 +64,7 @@ void HideWindow(IWindow * window)
 	if (window->IsVisible()) {
 		window->Show(false);
 		auto dec = InterlockedDecrement(window_visibility_counter);
-		if (dec == 0) GetWindowSystem()->SetApplicationIconVisibility(false);
+		if (dec == 0 && !is_init_mode) GetWindowSystem()->SetApplicationIconVisibility(false);
 	}
 }
 void RunHelp(void) { RunDocumentationWindow(interface); }
@@ -133,6 +134,7 @@ public:
 	}
 	static bool RunSetup(void)
 	{
+		is_init_mode = true;
 		ServerSetupCallback callback;
 		auto stored_callback = GetWindowSystem()->GetCallback();
 		GetWindowSystem()->SetCallback(&callback);
@@ -144,6 +146,7 @@ public:
 		GetWindowSystem()->SetCallback(stored_callback);
 		GetWindowSystem()->SetApplicationIconVisibility(false);
 		CloseDocumentationWindow();
+		is_init_mode = false;
 		return GetServerName().Length() > 0;
 	}
 };
@@ -499,6 +502,7 @@ public:
 		auto group = FindControl(window, 100);
 		SafePointer<AnimatedView> view = new AnimatedView;
 		group->AddChild(view);
+		group->ArrangeChildren();
 		GetControlSystem(window)->SetRefreshPeriod(ControlRefreshPeriod::Cinematic);
 	}
 	virtual void Destroyed(IWindow * window) override
@@ -1065,6 +1069,7 @@ int Main(void)
 		{
 			window_visibility_counter = modal_counter = 0;
 			main_window = 0;
+			is_init_mode = false;
 			SafePointer<IScreen> main = GetDefaultScreen();
 			CurrentLocale = GetCurrentUserLocale();
 			if (CurrentLocale != L"ru") CurrentLocale = L"en";

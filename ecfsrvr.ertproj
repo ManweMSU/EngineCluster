@@ -4,27 +4,6 @@ NoDockIcon = true
 OutputName = "ecfsrvr"
 Subsystem = "gui"
 UseVersionDefines = true
-Attachments {
-	AAAAAA {
-		From = "artwork\\ani\\ani.ecsa"
-		To = "ecfsrvr.ecsa"
-	}
-	AAAAAB {
-		From = "docs\\docs.ecsa"
-		To = "ecfsrvr.ehlp"
-	}
-}
-CompileList {
-	AAAAAA = "client\\ClusterPackage.cxx"
-	AAAAAB = "docview.cxx"
-	AAAAAC = "ecfsrvr.cxx"
-	AAAAAD = "ecfsrvr.uiml"
-	AAAAAE = "srvrnet.cxx"
-	AAAAAF = "srvrsrvc.cxx"
-}
-EngineStore {
-	PermanentFiles = "*ecfsrvr.ecs"
-}
 "-macosx-arm64" {
 	Attachments {
 		CGAAAA {
@@ -48,23 +27,6 @@ EngineStore {
 			To = "ecfhost"
 		}
 	}
-}
-Resources {
-	COM = "@com_en.ecst"
-	TRAY = "artwork\\icon_tray.eiwv"
-	ru {
-		COM = "@com_ru.ecst"
-	}
-}
-VersionInformation {
-	ApplicationIdentifier = "ClusterFrameworkServer"
-	ApplicationName = "Engine Cluster Framework Server"
-	CompanyIdentifier = "EngineSoftware"
-	CompanyName = "Engine Software"
-	Copyright = "© Engine Software. 2023"
-	Description = "Engine Cluster Framework server application."
-	InternalName = "ecfsrvr"
-	Version = "1.0.0.1"
 }
 "-windows-arm" {
 }
@@ -93,4 +55,42 @@ VersionInformation {
 			To = "ecfhost.exe"
 		}
 	}
+}
+Attachments {
+	AAAAAA {
+		From = "artwork\\ani\\ani.ecsa"
+		To = "ecfsrvr.ecsa"
+	}
+	AAAAAB {
+		From = "docs\\docs.ecsa"
+		To = "ecfsrvr.ehlp"
+	}
+}
+CompileList {
+	AAAAAA = "client\\ClusterPackage.cxx"
+	AAAAAB = "docview.cxx"
+	AAAAAC = "ecfsrvr.cxx"
+	AAAAAD = "ecfsrvr.uiml"
+	AAAAAE = "srvrnet.cxx"
+	AAAAAF = "srvrsrvc.cxx"
+}
+EngineStore {
+	PermanentFiles = "*ecfsrvr.ecs"
+}
+Resources {
+	COM = "@com_en.ecst"
+	TRAY = "artwork\\icon_tray.eiwv"
+	ru {
+		COM = "@com_ru.ecst"
+	}
+}
+VersionInformation {
+	ApplicationIdentifier = "ClusterFrameworkServer"
+	ApplicationName = "Engine Cluster Framework Server"
+	CompanyIdentifier = "EngineSoftware"
+	CompanyName = "Engine Software"
+	Copyright = "© Engine Software. 2023"
+	Description = "Engine Cluster Framework server application."
+	InternalName = "ecfsrvr"
+	Version = "1.0.1.3"
 }
